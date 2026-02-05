@@ -25,7 +25,6 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
-  - _EMISSION
   - _GLOSSINESS_FROM_BASE_ALPHA
   - _SPECULAR_COLOR
   m_InvalidKeywords: []
@@ -148,8 +147,8 @@ Material:
     - _XRMotionVectorsPass: 1
     - _ZWrite: 1
     m_Colors:
-    - _BaseColor: {r: 0.28301886, g: 0.7110126, b: 1, a: 0.423}
-    - _Color: {r: 0.28301883, g: 0.7110126, b: 1, a: 0.423}
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 0.423}
+    - _Color: {r: 1, g: 1, b: 1, a: 0.423}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _MyColor: {r: 0.87058824, g: 0.87058824, b: 0.87058824, a: 1}
     - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
@@ -157,4 +156,3 @@ Material:
     - _SpecColor: {r: 0.50735295, g: 0.50735295, b: 0.50735295, a: 1}
     - _TintColor: {r: 0.5, g: 0.5, b: 0.5, a: 0.5}
   m_BuildTextureStacks: []
-  m_AllowLocking: 1
