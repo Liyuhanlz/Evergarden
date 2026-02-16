@@ -1,55 +1,71 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Farmland : MonoBehaviour
 {
     public enum LandStatus
     {
-         Grass, Tilled, Watered
+        Grass,
+        Tilled,
+        Watered
     }
 
     public LandStatus landStatus;
 
-    public GameObject grassPrefab;
-    public GameObject tilledPrefab;
+    public GameObject grassModel;   // child object for grass
+    public GameObject tilledModel;  // child object for tilled soil
 
-    private MeshRenderer currentRenderer;
+    private MeshRenderer tilledRenderer;
 
-    // Start is called before the first frame update
     void Start()
     {
-        UpdateStatus(LandStatus.Grass);
+        // Get the renderer for tilled so we can change its color
+        tilledRenderer = tilledModel.GetComponent<MeshRenderer>();
+        landStatus = LandStatus.Grass;
+        grassModel.SetActive(true);   // grass visible
+        tilledModel.SetActive(false); // tilled hidden until hoe hits
+
     }
 
-
-
-    // Update is called once per frame
-    void Update()
+    private void Update()
     {
         
     }
 
-    public void UpdateStatus(LandStatus statusToSwitch)
+
+    public void SetStatus(LandStatus newStatus)
     {
-        landStatus = statusToSwitch;
+        landStatus = newStatus;
 
-        GameObject modelSwitch = grassPrefab;
+        // Grass vs tilled model swap
+        grassModel.SetActive(newStatus == LandStatus.Grass);
+        tilledModel.SetActive(newStatus == LandStatus.Tilled || newStatus == LandStatus.Watered);
 
-        switch (statusToSwitch)
+        // Only change color if tilled/watered
+        if (newStatus == LandStatus.Tilled)
         {
-            case LandStatus.Grass:
-                modelSwitch = grassPrefab;
-                break;
+            tilledRenderer.material.color = new Color(0.55f, 0.27f, 0.07f); // light brown
+        }
+        else if (newStatus == LandStatus.Watered)
+        {
+            tilledRenderer.material.color = new Color(0.35f, 0.2f, 0.05f); // darker brown
+        }
+    }
 
-            case LandStatus.Tilled:
-                modelSwitch = tilledPrefab;
-                currentRenderer.material.color = new Color(0.55f, 0.27f, 0.07f);
-                break;
+    // Hoe collision -> Tilled
+    private void OnCollisionEnter(Collision other)
+    {
+        if (other.gameObject.CompareTag("Hoe") && landStatus == LandStatus.Grass)
+        {
+            SetStatus(LandStatus.Tilled);
+        }
+    }
 
-            case LandStatus.Watered:
-                currentRenderer.material.color = new Color(0.35f, 0.2f, 0.05f);
-                break;
+    // Water particle collision -> Watered
+    private void OnParticleCollision(GameObject other)
+    {
+        if (other.CompareTag("Water") && landStatus == LandStatus.Tilled)
+        {
+            SetStatus(LandStatus.Watered);
         }
     }
 }
