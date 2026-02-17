@@ -14,13 +14,17 @@ public class Farmland : MonoBehaviour
     public GameObject grassModel;   // child object for grass
     public GameObject tilledModel;  // child object for tilled soil
 
-    private MeshRenderer tilledRenderer;
+    public Renderer blockRenderer;
+    public Material tilledColor;
+    public Material wateredColor;
 
     void Start()
     {
         // Get the renderer for tilled so we can change its color
-        tilledRenderer = tilledModel.GetComponent<MeshRenderer>();
+        // tilledRenderer = tilledModel.GetComponent<MeshRenderer>();
         landStatus = LandStatus.Grass;
+        //var waterParticle = GetComponent<ParticleSystem>();
+
         grassModel.SetActive(true);   // grass visible
         tilledModel.SetActive(false); // tilled hidden until hoe hits
 
@@ -43,11 +47,11 @@ public class Farmland : MonoBehaviour
         // Only change color if tilled/watered
         if (newStatus == LandStatus.Tilled)
         {
-            tilledRenderer.material.color = new Color(0.55f, 0.27f, 0.07f); // light brown
+            blockRenderer.material = tilledColor;
         }
         else if (newStatus == LandStatus.Watered)
         {
-            tilledRenderer.material.color = new Color(0.35f, 0.2f, 0.05f); // darker brown
+            blockRenderer.material = wateredColor;
         }
     }
 
