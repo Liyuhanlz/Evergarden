@@ -30,12 +30,6 @@ public class Farmland : MonoBehaviour
 
     }
 
-    private void Update()
-    {
-        
-    }
-
-
     public void SetStatus(LandStatus newStatus)
     {
         landStatus = newStatus;
