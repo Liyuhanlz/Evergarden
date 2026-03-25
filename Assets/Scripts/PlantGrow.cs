@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+
 [CreateAssetMenu(fileName = "PlantGrow", menuName = "Scriptable Objects/PlantGrow")]
 public class PlantGrow : ScriptableObject
 {
