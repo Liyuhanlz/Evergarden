@@ -1,69 +1,180 @@
 using UnityEngine;
 
+// Farmland.cs - Owns one soil tile in the scene.
+// Handles all tile state changes and crop growth for that tile.
+//
+// State machine: Grass -> Tilled -> Planted -> Watered
+//                                   ^________| (resets each morning)
+//
+// Unity setup per tile:
+//   - Attach this script to each soil tile GameObject
+//   - Assign grassModel, tilledModel, blockRenderer, tilledMat, wateredMat
+//   - Tag your Hoe collider "Hoe"
+//   - Tag your water particle system "Water"
+//   - Tag your seed particle system "Seed"
+//   - Enable "Send Collision Messages" on BOTH particle systems
+//
+// IMPORTANT: Farmland subscribes to GameClock.OnNewDay automatically in Start().
+// You do NOT need to wire anything in the Inspector for growth to work.
+
 public class Farmland : MonoBehaviour
 {
-    public enum LandStatus
-    {
-        Grass,
-        Tilled,
-        Watered
-    }
+    // Tile state
+    public enum TileState { Grass, Tilled, Planted, Watered }
 
-    public LandStatus landStatus;
+    [Header("Current State (read-only at runtime)")]
+    public TileState state = TileState.Grass;
 
-    public GameObject grassModel;   // child object for grass
-    public GameObject tilledModel;  // child object for tilled soil
-
+    // Visuals
+    [Header("Visuals")]
+    public GameObject grassModel;
+    public GameObject tilledModel;
     public Renderer blockRenderer;
-    public Material tilledColor;
-    public Material wateredColor;
+    public Material tilledMat;
+    public Material wateredMat;
+
+    // Crop tracking
+    [Header("Crop (set at runtime)")]
+    public CropData cropData;
+    public int daysWatered = 0;
+
+    private GameObject spawnedCropModel;
+    private int lastDisplayedStage = -1;
+
+    // FarmManager subscribes to this to show harvest alerts
+    public event System.Action<Farmland> OnReadyToHarvest;
 
     void Start()
     {
-        // Get the renderer for tilled so we can change its color
-        // tilledRenderer = tilledModel.GetComponent<MeshRenderer>();
-        landStatus = LandStatus.Grass;
-        //var waterParticle = GetComponent<ParticleSystem>();
+        SetState(TileState.Grass);
 
-        grassModel.SetActive(true);   // grass visible
-        tilledModel.SetActive(false); // tilled hidden until hoe hits
-
+        if (GameClock.Instance != null)
+            GameClock.Instance.OnNewDay += HandleNewDay;
+        else
+            Debug.LogWarning("[Farmland] No GameClock found. Crop growth won't work.");
     }
 
-    public void SetStatus(LandStatus newStatus)
+    void OnDestroy()
     {
-        landStatus = newStatus;
+        if (GameClock.Instance != null)
+            GameClock.Instance.OnNewDay -= HandleNewDay;
+    }
 
-        // Grass vs tilled model swap
-        grassModel.SetActive(newStatus == LandStatus.Grass);
-        tilledModel.SetActive(newStatus == LandStatus.Tilled || newStatus == LandStatus.Watered);
-
-        // Only change color if tilled/watered
-        if (newStatus == LandStatus.Tilled)
+    // Called by GameClock every in-game day
+    void HandleNewDay()
+    {
+        if (state == TileState.Watered && cropData != null)
         {
-            blockRenderer.material = tilledColor;
+            daysWatered++;
+            RefreshCropVisual();
+
+            if (cropData.IsReadyToHarvest(daysWatered))
+            {
+                Debug.Log("[Farmland] " + cropData.cropName + " is ready to harvest!");
+                OnReadyToHarvest?.Invoke(this);
+            }
         }
-        else if (newStatus == LandStatus.Watered)
+
+        // Reset watered tiles back to planted each morning
+        if (state == TileState.Watered)
+            SetState(TileState.Planted);
+    }
+
+    // State machine
+    public void SetState(TileState newState)
+    {
+        state = newState;
+
+        if (grassModel) grassModel.SetActive(newState == TileState.Grass);
+        if (tilledModel) tilledModel.SetActive(newState != TileState.Grass);
+
+        if (blockRenderer != null)
         {
-            blockRenderer.material = wateredColor;
+            if (newState == TileState.Tilled || newState == TileState.Planted)
+                blockRenderer.material = tilledMat;
+            else if (newState == TileState.Watered)
+                blockRenderer.material = wateredMat;
         }
     }
 
-    // Hoe collision -> Tilled
+    // Called by SeedBag particle collision
+    public bool TryPlant(CropData data)
+    {
+        if (state != TileState.Tilled || cropData != null) return false;
+
+        cropData = data;
+        daysWatered = 0;
+        lastDisplayedStage = -1;
+        SetState(TileState.Planted);
+        RefreshCropVisual();
+        Debug.Log("[Farmland] Planted " + data.cropName + ".");
+        return true;
+    }
+
+    // Called by FarmManager when player harvests
+    public CropData Harvest()
+    {
+        if (cropData == null || !cropData.IsReadyToHarvest(daysWatered)) return null;
+
+        CropData harvested = cropData;
+        cropData = null;
+        daysWatered = 0;
+        lastDisplayedStage = -1;
+
+        if (spawnedCropModel != null)
+        {
+            Destroy(spawnedCropModel);
+            spawnedCropModel = null;
+        }
+
+        SetState(TileState.Tilled);
+        Debug.Log("[Farmland] Harvested " + harvested.cropName + "!");
+        return harvested;
+    }
+
+    // Swap the visible crop model to match current growth stage
+    void RefreshCropVisual()
+    {
+        if (cropData == null) return;
+
+        int stage = cropData.GetStageForDay(daysWatered);
+        if (stage == lastDisplayedStage) return;
+        lastDisplayedStage = stage;
+
+        if (spawnedCropModel != null) Destroy(spawnedCropModel);
+
+        GameObject prefab = cropData.GetPrefabForStage(stage);
+        if (prefab != null)
+            spawnedCropModel = Instantiate(prefab, transform.position, Quaternion.identity, transform);
+    }
+
+    // Hoe -> Tilled
     private void OnCollisionEnter(Collision other)
     {
-        if (other.gameObject.CompareTag("Hoe") && landStatus == LandStatus.Grass)
+        if (other.gameObject.CompareTag("Hoe") && state == TileState.Grass)
         {
-            SetStatus(LandStatus.Tilled);
+            SetState(TileState.Tilled);
+            Debug.Log("[Farmland] Tilled!");
         }
     }
 
-    // Water particle collision -> Watered
+    // Particle collisions
+ 
     private void OnParticleCollision(GameObject other)
     {
-        if (other.CompareTag("Water") && landStatus == LandStatus.Tilled)
+        if (other.CompareTag("Seed") && state == TileState.Tilled)
         {
-            SetStatus(LandStatus.Watered);
+            SeedBag bag = other.GetComponentInParent<SeedBag>();
+            if (bag != null && bag.seedData != null)
+                TryPlant(bag.seedData);
+
+            //Debug.Log("[Farmland] Planted!");
+        }
+
+        if (other.CompareTag("Water") && state == TileState.Planted)
+        {
+            SetState(TileState.Watered);
+            Debug.Log("[Farmland] Watered!");
         }
     }
 }

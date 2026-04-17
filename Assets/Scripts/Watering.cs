@@ -1,17 +1,9 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-
 using UnityEngine.XR.Interaction.Toolkit;
 
 public class Watering : MonoBehaviour
 {
     public ParticleSystem waterParticles;
-    
-
-    // private float maxWater = 10f;
-    // private float currentWater = 10f;
-    // private float waterUseReate = 1f;
     private XRGrabInteractable grabInteractable;
     private bool isHeld = false;
 
@@ -26,61 +18,27 @@ public class Watering : MonoBehaviour
         grabInteractable.selectExited.AddListener(OnRelease);
     }
 
-    void OnDisable()
+    private void OnDisable()
     {
         grabInteractable.selectEntered.RemoveListener(OnGrab);
         grabInteractable.selectExited.RemoveListener(OnRelease);
     }
 
-    void OnGrab(SelectEnterEventArgs args)
-    {
-        Debug.Log("Grabbed");
-        isHeld = true;
-    }
+    private void OnGrab(SelectEnterEventArgs args) => isHeld = true;
+    private void OnRelease(SelectExitEventArgs args) => isHeld = false;
 
-    void OnRelease(SelectExitEventArgs args)
-    {
-        Debug.Log("Released");
-        isHeld = false;
-    }
-
-
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
     void Update()
     {
-        
-
+        // Pour logic based on X-axis tilt
         float tiltAmount = transform.localEulerAngles.x;
 
-        if (tiltAmount > 2 && tiltAmount < 180 && isHeld)
-            //&& currentWater > 0)
+        if (isHeld && tiltAmount > 20 && tiltAmount < 160)
         {
-            StartWater();
-            // currentWater -= waterUseRate * Time.deltaTime;
+            if (!waterParticles.isPlaying) waterParticles.Play();
         }
-        else 
+        else
         {
-            StopWater();
+            if (waterParticles.isPlaying) waterParticles.Stop();
         }
-
-    }
-    
-    void StartWater()
-    {
-        if (!waterParticles.isPlaying)
-            waterParticles.Play();
-    }
-
-    void StopWater()
-    {
-        if (waterParticles.isPlaying)
-            waterParticles.Stop();
     }
 }

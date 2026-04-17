@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e196547546c6f424c8348bd1f3945667, type: 3}
+  m_Name: Carrot
+  m_EditorClassIdentifier: 
+  cropName: Carrot
+  daysToMature: 2
+  growthStagePrefabs:
+  - {fileID: 4702308538449005643, guid: 3627c8beb6d894646a5e8a61c4c9c7c4, type: 3}
+  - {fileID: 9166320790681478603, guid: 1c7e65cd176bcc84bb198f6744087957, type: 3}
+  harvestYield: 4
+  sellPrice: 10
