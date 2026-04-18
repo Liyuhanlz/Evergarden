@@ -55,7 +55,16 @@ public class GameClock : MonoBehaviour
 
     public string GetTimeString()
     {
-        return CurrentHour.ToString("D2") + ":" + CurrentMinute.ToString("D2");
+        if (0 <= CurrentHour && CurrentHour < 12)
+        {
+            return CurrentHour.ToString("D2") + ":" + CurrentMinute.ToString("D2") + "AM";
+        }
+        else
+        {
+            return CurrentHour.ToString("D2") + ":" + CurrentMinute.ToString("D2") + "PM";
+        }
+
+        /*return CurrentHour.ToString("D2") + ":" + CurrentMinute.ToString("D2");*/
     }
 
     public string GetDayString()
