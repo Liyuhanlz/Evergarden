@@ -1,21 +1,5 @@
 using UnityEngine;
 
-// Farmland.cs - Owns one soil tile in the scene.
-// Handles all tile state changes and crop growth for that tile.
-//
-// State machine: Grass -> Tilled -> Planted -> Watered
-//                                   ^________| (resets each morning)
-//
-// Unity setup per tile:
-//   - Attach this script to each soil tile GameObject
-//   - Assign grassModel, tilledModel, blockRenderer, tilledMat, wateredMat
-//   - Tag your Hoe collider "Hoe"
-//   - Tag your water particle system "Water"
-//   - Tag your seed particle system "Seed"
-//   - Enable "Send Collision Messages" on BOTH particle systems
-//
-// IMPORTANT: Farmland subscribes to GameClock.OnNewDay automatically in Start().
-// You do NOT need to wire anything in the Inspector for growth to work.
 
 public class Farmland : MonoBehaviour
 {
@@ -38,6 +22,7 @@ public class Farmland : MonoBehaviour
     public CropData cropData;
     public int daysWatered = 0;
 
+    public Transform cropSpawnPoint;
     private GameObject spawnedCropModel;
     private int lastDisplayedStage = -1;
 
@@ -145,7 +130,7 @@ public class Farmland : MonoBehaviour
 
         GameObject prefab = cropData.GetPrefabForStage(stage);
         if (prefab != null)
-            spawnedCropModel = Instantiate(prefab, transform.position, Quaternion.identity, transform);
+            spawnedCropModel = Instantiate(prefab, cropSpawnPoint.position, Quaternion.identity, cropSpawnPoint);
     }
 
     // Hoe -> Tilled

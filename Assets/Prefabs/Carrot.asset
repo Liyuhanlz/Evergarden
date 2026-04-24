@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: Carrot
   m_EditorClassIdentifier: 
   cropName: Carrot
-  daysToMature: 2
+  daysToMature: 1
   growthStagePrefabs:
   - {fileID: 4702308538449005643, guid: 3627c8beb6d894646a5e8a61c4c9c7c4, type: 3}
   - {fileID: 9166320790681478603, guid: 1c7e65cd176bcc84bb198f6744087957, type: 3}
   harvestYield: 4
   sellPrice: 10
+  icon: {fileID: 21300000, guid: 972ad0977ab01cb4a8d5b7c5cd1539e1, type: 3}

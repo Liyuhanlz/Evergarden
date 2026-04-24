@@ -1,17 +1,6 @@
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 
-// SeedBag.cs - Grabbable seed bag the player tilts to scatter seeds.
-// Works identically to Watering.cs - tilt the object to pour.
-//
-// Unity setup:
-//   - Add to your seed bag GameObject
-//   - Add XRGrabInteractable component
-//   - Add a child ParticleSystem for seed particles
-//   - Tag the ParticleSystem GameObject "Seed"
-//   - On the ParticleSystem: Collision module -> enable "Send Collision Messages"  <- CRITICAL
-//   - Assign a CropData ScriptableObject asset to seedData in the Inspector
-
 public class SeedBag : MonoBehaviour
 {
     [Header("References")]

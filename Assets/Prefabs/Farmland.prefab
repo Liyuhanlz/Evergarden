@@ -201,6 +201,7 @@ Transform:
   m_Children:
   - {fileID: 6212010687142331769}
   - {fileID: 115198008163115122}
+  - {fileID: 1977263860592075184}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &6537526055245158813
@@ -273,6 +274,7 @@ MonoBehaviour:
   wateredMat: {fileID: 2100000, guid: a3703a525e8fa0a4ab5b03531aad7454, type: 2}
   cropData: {fileID: 0}
   daysWatered: 0
+  cropSpawnPoint: {fileID: 1977263860592075184}
 --- !u!64 &3602785843155527374
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -292,6 +294,37 @@ MeshCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 5
-  m_Convex: 1
+  m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -7387873702037156926, guid: f62392bd6a9766243b69ef2c7c8e3851, type: 3}
+--- !u!1 &5348837752399664174
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1977263860592075184}
+  m_Layer: 0
+  m_Name: Spawn point
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1977263860592075184
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5348837752399664174}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 2.1, z: -0.025}
+  m_LocalScale: {x: 4, y: 4, z: 4}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5258416729752330539}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

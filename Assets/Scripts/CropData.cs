@@ -1,7 +1,10 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+// CropData.cs -- ScriptableObject (DATA ONLY, no scene logic)
+// Create one asset per crop type:
+//   Right-click in Project window -> Create -> Farming -> Crop Data
+// Drag each asset into a SeedBag in the scene.
 
 [CreateAssetMenu(fileName = "NewCrop", menuName = "Farming/Crop Data")]
 public class CropData : ScriptableObject
@@ -23,7 +26,11 @@ public class CropData : ScriptableObject
     [Tooltip("Base sell price per item in the shop")]
     public int sellPrice = 10;
 
-    // „Ÿ„Ÿ Helpers „Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ„Ÿ
+    [Header("UI")]
+    [Tooltip("Icon shown in the inventory slot -- drag a Sprite here")]
+    public Sprite icon;
+
+    // Helpers
 
     // Total number of visual stages (driven by how many prefabs you assign)
     public int StageCount => growthStagePrefabs.Count;
@@ -50,6 +57,4 @@ public class CropData : ScriptableObject
     {
         return daysWatered >= daysToMature;
     }
-
-
 }
