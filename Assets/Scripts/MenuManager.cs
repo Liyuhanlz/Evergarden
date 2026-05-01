@@ -1,144 +1,236 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
-using UnityEngine.XR.Interaction.Toolkit;
 
 public class MenuManager : MonoBehaviour
 {
     public static MenuManager Instance { get; private set; }
 
-    [Header("Input")]
-    [Tooltip("Assign XRI RightHand / secondaryButton action from your Input Action Asset")]
-    public InputActionProperty menuButtonAction;
+    // ---------------------------------------------
+    //  INPUT
+    // ---------------------------------------------
+    [Header("Input - Right Controller")]
+    [Tooltip("Right B button -> opens/closes Inventory. " +
+             "Bind to: XRI RightHand Interaction / secondaryButton")]
+    public InputActionProperty inventoryButtonAction;
 
-    [Tooltip("Turn on if you want to skip the Input Action Asset and poll B button directly")]
+    [Header("Input - Left Controller")]
+    [Tooltip("Left Menu/Start button -> opens/closes Pause. " +
+             "Bind to: XRI LeftHand Interaction / menu (or secondaryButton for Y)")]
+    public InputActionProperty pauseButtonAction;
+
+    [Tooltip("Enable to use XR direct polling instead of Input Action Asset")]
     public bool useDirectPolling = false;
 
-    [Header("Menu Canvas")]
-    public GameObject menuCanvas;
+ 
+    [Header("Panels")]
+    [Tooltip("Canvas / panel shown when Inventory is open")]
+    public GameObject inventoryPanel;
+
+    [Tooltip("Canvas / panel shown when Pause is open")]
+    public GameObject pausePanel;
+
+    [Tooltip("Settings panel - opened from inside Pause")]
+    public GameObject settingsPanel;
+
+
+    [Header("Menu Placement")]
     public float menuDistance = 1.5f;
     public float menuHeightOffset = 0.1f;
 
-    [Header("Panels")]
-    public GameObject pausePanel;
-    public GameObject inventoryPanel;
-
     [Header("Camera")]
-    [Tooltip("Assign CenterEyeAnchor or Main Camera transform")]
+    [Tooltip("Assign CenterEyeAnchor or Main Camera")]
     public Transform vrCamera;
 
-    public enum MenuPanel { None, Pause, Inventory }
-    private MenuPanel currentPanel = MenuPanel.None;
-    private bool menuOpen = false;
 
-    // For direct polling debounce
+    private bool inventoryOpen = false;
+    private bool pauseOpen = false;
+
     private bool bWasPressed = false;
+    private bool menuWasPressed = false;
+
 
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
-        if (menuCanvas != null) menuCanvas.SetActive(false);
 
-        // Auto find camera if not assigned
+        HideAll();
+
         if (vrCamera == null && Camera.main != null)
             vrCamera = Camera.main.transform;
     }
 
     void OnEnable()
     {
-        if (!useDirectPolling && menuButtonAction.action != null)
+        if (!useDirectPolling)
         {
-            menuButtonAction.action.Enable();
-            menuButtonAction.action.performed += OnMenuButtonPressed;
+            EnableAction(inventoryButtonAction, OnInventoryButtonPressed);
+            EnableAction(pauseButtonAction, OnPauseButtonPressed);
         }
     }
 
     void OnDisable()
     {
-        if (!useDirectPolling && menuButtonAction.action != null)
+        if (!useDirectPolling)
         {
-            menuButtonAction.action.performed -= OnMenuButtonPressed;
-            menuButtonAction.action.Disable();
+            DisableAction(inventoryButtonAction, OnInventoryButtonPressed);
+            DisableAction(pauseButtonAction, OnPauseButtonPressed);
         }
     }
 
     void Update()
     {
-        // OPTION B: direct polling fallback
-        if (useDirectPolling)
-        {
-            // secondaryButton = B on right controller
-            bool bPressed = UnityEngine.XR.InputDevices.GetDeviceAtXRNode(UnityEngine.XR.XRNode.RightHand)
-                .TryGetFeatureValue(UnityEngine.XR.CommonUsages.secondaryButton, out bool val) && val;
+        if (!useDirectPolling) return;
 
-            // Only trigger on the frame the button goes down (not held)
-            if (bPressed && !bWasPressed)
-                ToggleMenu();
+        // Right hand B button -> Inventory
+        bool bNow = GetButton(UnityEngine.XR.XRNode.RightHand,
+                              UnityEngine.XR.CommonUsages.secondaryButton);
+        if (bNow && !bWasPressed) ToggleInventory();
+        bWasPressed = bNow;
 
-            bWasPressed = bPressed;
-        }
+        // Left hand Menu button -> Pause
+        bool menuNow = GetButton(UnityEngine.XR.XRNode.LeftHand,
+                                 UnityEngine.XR.CommonUsages.menuButton);
+        if (menuNow && !menuWasPressed) TogglePause();
+        menuWasPressed = menuNow;
     }
 
-    // Called by InputAction event (Option A)
-    void OnMenuButtonPressed(InputAction.CallbackContext ctx)
+    void OnInventoryButtonPressed(InputAction.CallbackContext ctx) => ToggleInventory();
+
+    void ToggleInventory()
     {
-        ToggleMenu();
+        if (pauseOpen) ClosePause();
+
+        if (inventoryOpen) CloseInventory();
+        else OpenInventory();
     }
 
-    void ToggleMenu()
+    void OpenInventory()
     {
-        if (menuOpen) CloseMenu();
-        else OpenMenu(MenuPanel.Pause);
+        inventoryOpen = true;
+        PositionPanel(inventoryPanel);
+        SetActive(inventoryPanel, true);
+        Debug.Log("[MenuManager] Inventory opened.");
     }
 
-    public void OpenMenu(MenuPanel panel)
+    void CloseInventory()
     {
-        menuOpen = true;
-        PositionMenuInFrontOfPlayer();
-        if (menuCanvas != null) menuCanvas.SetActive(true);
-        ShowPanel(panel);
-        Debug.Log("[MenuManager] Menu opened.");
+        inventoryOpen = false;
+        SetActive(inventoryPanel, false);
+        Debug.Log("[MenuManager] Inventory closed.");
     }
 
-    public void CloseMenu()
+    void OnPauseButtonPressed(InputAction.CallbackContext ctx) => TogglePause();
+
+    void TogglePause()
     {
-        menuOpen = false;
-        if (menuCanvas != null) menuCanvas.SetActive(false);
-        Debug.Log("[MenuManager] Menu closed.");
+        if (inventoryOpen) CloseInventory();
+
+        if (pauseOpen) ClosePause();
+        else OpenPause();
     }
 
-    void PositionMenuInFrontOfPlayer()
+    void OpenPause()
     {
-        if (vrCamera == null || menuCanvas == null) return;
+        pauseOpen = true;
+        Time.timeScale = 0f;
+        PositionPanel(pausePanel);
+        SetActive(pausePanel, true);
+        SetActive(settingsPanel, false);
+        Debug.Log("[MenuManager] Game paused.");
+    }
+
+    void ClosePause()
+    {
+        pauseOpen = false;
+        Time.timeScale = 1f;
+        SetActive(pausePanel, false);
+        SetActive(settingsPanel, false);
+        Debug.Log("[MenuManager] Game resumed.");
+    }
+
+    // Pause panel -> Resume button
+    public void OnResumePressed() => ClosePause();
+
+    // Pause panel -> Settings button
+    public void OnSettingsPressed()
+    {
+        SetActive(pausePanel, false);
+        PositionPanel(settingsPanel);
+        SetActive(settingsPanel, true);
+    }
+
+    // Settings panel -> Back button
+    public void OnSettingsBackPressed()
+    {
+        SetActive(settingsPanel, false);
+        PositionPanel(pausePanel);
+        SetActive(pausePanel, true);
+    }
+
+    // Pause panel -> Quit button
+    public void OnQuitPressed()
+    {
+        /*Time.timeScale = 1f;
+        HideAll();
+        SceneManager.LoadScene("StartMenu");*/
+
+        Time.timeScale = 1f;
+        #if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+        #else
+        Application.Quit();
+        #endif
+
+    }
+
+
+    void PositionPanel(GameObject panel)
+    {
+        if (vrCamera == null || panel == null) return;
 
         Vector3 forward = vrCamera.forward;
         forward.y = 0f;
         if (forward == Vector3.zero) forward = Vector3.forward;
         forward.Normalize();
 
-        Vector3 position = vrCamera.position
-                         + forward * menuDistance
-                         + Vector3.up * menuHeightOffset;
-
-        menuCanvas.transform.position = position;
-        menuCanvas.transform.rotation = Quaternion.LookRotation(forward);
+        panel.transform.position = vrCamera.position
+                                 + forward * menuDistance
+                                 + Vector3.up * menuHeightOffset;
+        panel.transform.rotation = Quaternion.LookRotation(forward);
     }
 
-    void ShowPanel(MenuPanel panel)
+    void HideAll()
     {
-        currentPanel = panel;
-        if (pausePanel != null) pausePanel.SetActive(panel == MenuPanel.Pause);
-        if (inventoryPanel != null) inventoryPanel.SetActive(panel == MenuPanel.Inventory);
+        SetActive(inventoryPanel, false);
+        SetActive(pausePanel, false);
+        SetActive(settingsPanel, false);
     }
 
-    // Wire these to your UI buttons in the Inspector
-    public void OnResumePressed() => CloseMenu();
-    public void OnInventoryTabPressed() => ShowPanel(MenuPanel.Inventory);
-    public void OnPauseTabPressed() => ShowPanel(MenuPanel.Pause);
-    public void OnQuitPressed()
+    static void SetActive(GameObject go, bool state)
     {
-        CloseMenu();
-        SceneManager.LoadScene("StartMenu");
+        if (go != null) go.SetActive(state);
+    }
+
+    static void EnableAction(InputActionProperty prop, System.Action<InputAction.CallbackContext> cb)
+    {
+        if (prop.action == null) return;
+        prop.action.Enable();
+        prop.action.performed += cb;
+    }
+
+    static void DisableAction(InputActionProperty prop, System.Action<InputAction.CallbackContext> cb)
+    {
+        if (prop.action == null) return;
+        prop.action.performed -= cb;
+        prop.action.Disable();
+    }
+
+    static bool GetButton(UnityEngine.XR.XRNode node, UnityEngine.XR.InputFeatureUsage<bool> usage)
+    {
+        return UnityEngine.XR.InputDevices
+            .GetDeviceAtXRNode(node)
+            .TryGetFeatureValue(usage, out bool v) && v;
     }
 }
