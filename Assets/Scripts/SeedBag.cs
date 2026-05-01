@@ -11,13 +11,12 @@ public class SeedBag : MonoBehaviour
     public CropData seedData;
 
     [Header("Tilt Settings")]
-    [Tooltip("Minimum X-axis tilt angle to start pouring")]
-    public float tiltMin = 20f;
+    [Tooltip("Minimum Z-axis tilt angle to start pouring")]
+    public float tiltMin = 50f;
 
-    [Tooltip("Maximum X-axis tilt angle to pour (prevents upside-down triggering)")]
-    public float tiltMax = 160f;
+    [Tooltip("Maximum Z-axis tilt angle to pour")]
+    public float tiltMax = 300f;
 
-    // XR Grab
     private XRGrabInteractable grabInteractable;
     private bool isHeld = false;
 
@@ -50,19 +49,23 @@ public class SeedBag : MonoBehaviour
 
     void Update()
     {
-        // localEulerAngles.x returns 0-360 even when tilting forward/back
-        float tilt = transform.localEulerAngles.x;
+        float tilt = transform.localEulerAngles.z;
+
         bool shouldPour = isHeld && tilt > tiltMin && tilt < tiltMax;
 
         if (shouldPour)
         {
             if (!seedParticles.isPlaying)
+            {
                 seedParticles.Play();
+            }
         }
         else
         {
             if (seedParticles.isPlaying)
+            {
                 seedParticles.Stop();
+            }
         }
     }
 }

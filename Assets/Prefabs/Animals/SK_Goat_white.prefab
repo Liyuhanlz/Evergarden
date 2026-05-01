@@ -2516,7 +2516,8 @@ AudioSource:
   m_GameObject: {fileID: 6885452974112614176}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 24300002, guid: 60f4878c862a2ab4a9969ff56e095244,
+    type: 2}
   m_audioClip: {fileID: 0}
   m_PlayOnAwake: 1
   m_Volume: 1
@@ -2528,7 +2529,7 @@ AudioSource:
   Priority: 128
   DopplerLevel: 1
   MinDistance: 1
-  MaxDistance: 500
+  MaxDistance: 10
   Pan2D: 0
   rolloffMode: 0
   BypassEffects: 0
@@ -2563,7 +2564,7 @@ AudioSource:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 0
+      value: 1
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -2623,7 +2624,9 @@ MonoBehaviour:
   vertParameterName: Vert
   stateParameterName: State
   animationDampTime: 0.1
-  animalSounds: []
+  animalSounds:
+  - {fileID: 8300000, guid: a5c286858882eb34e8b5a95e0060b868, type: 3}
+  - {fileID: 8300000, guid: ad1db930688e2e14f9007751aa8ac5b4, type: 3}
   soundIntervalRange: {x: 5, y: 15}
   soundVolume: 1
 --- !u!1 &6885452974152113413

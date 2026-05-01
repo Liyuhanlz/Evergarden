@@ -601,7 +601,7 @@ CharacterController:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Height: 0.58
   m_Radius: 0.26
@@ -648,8 +648,9 @@ MonoBehaviour:
   idleDurationRange: {x: 2, y: 6}
   moveSpeed: 1.2
   angularSpeed: 120
-  walkParameterName: isWalking
-  usesBoolParameter: 1
+  vertParameterName: Vert
+  stateParameterName: State
+  animationDampTime: 0.1
   animalSounds: []
   soundIntervalRange: {x: 5, y: 15}
   soundVolume: 1
@@ -706,8 +707,9 @@ AudioSource:
   m_GameObject: {fileID: 3569598537862097395}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 24300002, guid: 60f4878c862a2ab4a9969ff56e095244,
+    type: 2}
+  m_audioClip: {fileID: 8300000, guid: 16fba6d30ed741d4a9fdd6e79ee2f3ac, type: 3}
   m_PlayOnAwake: 1
   m_Volume: 1
   m_Pitch: 1
@@ -718,7 +720,7 @@ AudioSource:
   Priority: 128
   DopplerLevel: 1
   MinDistance: 1
-  MaxDistance: 500
+  MaxDistance: 10
   Pan2D: 0
   rolloffMode: 0
   BypassEffects: 0
@@ -753,7 +755,7 @@ AudioSource:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 0
+      value: 1
       inSlope: 0
       outSlope: 0
       tangentMode: 0
