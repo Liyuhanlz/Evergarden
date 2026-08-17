@@ -9,14 +9,13 @@ public class MenuManager : MonoBehaviour
     // ---------------------------------------------
     //  INPUT
     // ---------------------------------------------
-    [Header("Input - Right Controller")]
-    [Tooltip("Right B button -> opens/closes Inventory. " +
-             "Bind to: XRI RightHand Interaction / secondaryButton")]
+    [Header("Input - Left Controller")]
+    [Tooltip("Left Y button -> opens/closes Inventory. " +
+             "Bind to: XRI LeftHand Interaction / secondaryButton")]
     public InputActionProperty inventoryButtonAction;
 
-    [Header("Input - Left Controller")]
     [Tooltip("Left Menu/Start button -> opens/closes Pause. " +
-             "Bind to: XRI LeftHand Interaction / menu (or secondaryButton for Y)")]
+             "Bind to: XRI LeftHand Interaction / menu")]
     public InputActionProperty pauseButtonAction;
 
     [Tooltip("Enable to use XR direct polling instead of Input Action Asset")]
@@ -83,8 +82,10 @@ public class MenuManager : MonoBehaviour
     {
         if (!useDirectPolling) return;
 
-        // Right hand B button -> Inventory
-        bool bNow = GetButton(UnityEngine.XR.XRNode.RightHand,
+        // Left hand Y button -> Inventory (moved off right-hand B, which
+        // ShopInteractionController uses to exit the shop -- the two were
+        // firing on the same press and fighting each other)
+        bool bNow = GetButton(UnityEngine.XR.XRNode.LeftHand,
                               UnityEngine.XR.CommonUsages.secondaryButton);
         if (bNow && !bWasPressed) ToggleInventory();
         bWasPressed = bNow;
