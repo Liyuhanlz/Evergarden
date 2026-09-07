@@ -13,6 +13,11 @@ public class DayNightCycle : MonoBehaviour
     [Header("Settings")]
     public float maxIntensity = 1f;
 
+    // Exposed so other systems (e.g. the skybox blend) can follow the same
+    // sun position without recomputing it themselves.
+    public float CurrentSunAngle { get; private set; }
+    public bool IsDaytime { get; private set; }
+
     private void Awake()
     {
         if (sunLight == null)
@@ -31,19 +36,16 @@ public class DayNightCycle : MonoBehaviour
         // This ensures that at 12:00 PM (0.25 progress), the rotation is 90 degrees.
         float angle = Mathf.Lerp(startAngle, endAngle, time);
         sunLight.transform.rotation = Quaternion.Euler(angle, -30f, 0f);
+        CurrentSunAngle = angle;
 
         // 2. Handle Light Intensity (Night/Day)
-        // Unity rotation 0-180 is generally "above ground" (Daylight)
-        // We use the local rotation to check if the sun has "set"
-        float currentX = sunLight.transform.eulerAngles.x;
-
-        if (currentX > 0f && currentX < 180f)
-        {
-            sunLight.intensity = maxIntensity;
-        }
-        else
-        {
-            sunLight.intensity = 0f;
-        }
+        // Check the source angle directly, NOT transform.eulerAngles.x.
+        // Reading the euler angle back off a Quaternion clamps pitch to
+        // +/-90 degrees (Unity's decomposition uses asin, whose range is
+        // limited), so a full 360-degree sweep gets folded into the wrong
+        // range for about three quarters of the day and the sun reads as
+        // "below the horizon" almost the whole time.
+        IsDaytime = angle > 0f && angle < 180f;
+        sunLight.intensity = IsDaytime ? maxIntensity : 0f;
     }
 }

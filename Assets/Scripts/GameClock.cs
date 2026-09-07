@@ -19,8 +19,29 @@ public class GameClock : MonoBehaviour
 
     public float TimeOfDay { get; private set; } = 0f;
 
+    // Freezes day progression (and, since DayNightCycle reads TimeOfDay each
+    // frame, the sun/skybox along with it) without touching Time.timeScale --
+    // menus that need to keep animating (e.g. the tool rack's scroll) while
+    // open can't use timeScale = 0, since that also zeroes Time.deltaTime.
+    private bool isPaused;
+    public bool IsPaused
+    {
+        get => isPaused;
+        set
+        {
+            if (isPaused == value) return;
+            isPaused = value;
+            OnPauseChanged?.Invoke(isPaused);
+        }
+    }
+
     public event Action OnNewDay;
     public UnityEvent OnNewDayUnityEvent;
+
+    // Fires whenever IsPaused actually changes -- anything that needs to
+    // freeze while a menu is open (animals, etc.) without polling every
+    // frame can subscribe instead.
+    public event Action<bool> OnPauseChanged;
 
     private float timer = 0f;
 
@@ -36,6 +57,8 @@ public class GameClock : MonoBehaviour
 
     private void Update()
     {
+        if (IsPaused) return;
+
         timer += Time.deltaTime;
         TimeOfDay = timer / realSecondsPerDay;
 

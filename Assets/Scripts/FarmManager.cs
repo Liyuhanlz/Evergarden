@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.XR;
 
 public class FarmManager : MonoBehaviour
 {
@@ -9,16 +8,10 @@ public class FarmManager : MonoBehaviour
     [Header("All Farmland Tiles")]
     public List<Farmland> allTiles = new List<Farmland>();
 
-    [Header("Harvest Settings")]
-    public float harvestRadius = 2f;
-
     [Header("Player Reference")]
     public Transform playerTransform;
 
     private List<Farmland> readyTiles = new List<Farmland>();
-
-    private InputDevice rightHandDevice;
-    private bool prevAPressed = false;
 
     void Awake()
     {
@@ -34,36 +27,6 @@ public class FarmManager : MonoBehaviour
     void Start()
     {
         RefreshTileList();
-        GetRightHandDevice();
-    }
-
-    void Update()
-    {
-        HandleHarvestInput();
-    }
-
-    void HandleHarvestInput()
-    {
-        if (!rightHandDevice.isValid)
-        {
-            GetRightHandDevice();
-            return;
-        }
-
-        if (rightHandDevice.TryGetFeatureValue(CommonUsages.primaryButton, out bool aPressed))
-        {
-            if (aPressed && !prevAPressed)
-            {
-                TryHarvestNearest();
-            }
-
-            prevAPressed = aPressed;
-        }
-    }
-
-    void GetRightHandDevice()
-    {
-        rightHandDevice = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
     }
 
     [ContextMenu("Refresh Tile List")]
@@ -91,44 +54,26 @@ public class FarmManager : MonoBehaviour
         if (!readyTiles.Contains(tile))
             readyTiles.Add(tile);
 
-        if (HUD.Instance != null)
-            HUD.Instance.ShowHarvestAlert(tile.cropData.cropName);
+        // No more "X is ready to harvest!" HUD popup -- FarmlandHoverStatus's
+        // ray-hover window already shows exactly this (see its "Ready to
+        // harvest!" line), so the two were duplicating each other.
     }
 
-    public CropData TryHarvestNearest()
+    // Harvests one specific tile -- called by FarmlandHoverStatus when the
+    // player is aiming the ray at a ready crop and presses A. Harvesting is
+    // aim-only: there's no longer a "press A near any ready crop" fallback,
+    // so this is the one path into actually harvesting anything.
+    public CropData HarvestTile(Farmland tile)
     {
-        if (playerTransform == null)
-        {
-            Debug.LogWarning("[FarmManager] Player transform not assigned.");
-            return null;
-        }
+        if (tile == null) return null;
 
-        Farmland closest = null;
-        float closestDist = harvestRadius;
-
-        foreach (Farmland tile in readyTiles)
-        {
-            if (tile == null) continue;
-
-            float dist = Vector3.Distance(playerTransform.position, tile.transform.position);
-            if (dist < closestDist)
-            {
-                closestDist = dist;
-                closest = tile;
-            }
-        }
-
-        if (closest == null)
-        {
-            Debug.Log("[FarmManager] No harvest-ready crop nearby.");
-            return null;
-        }
-
-        CropData result = closest.Harvest();
+        CropData result = tile.Harvest();
 
         if (result != null)
         {
             int amount = result.harvestYield;
+            if (tile.LastHarvestWasRegrowth)
+                amount = Mathf.Max(1, Mathf.RoundToInt(amount * result.regrowthYieldMultiplier));
 
             if (InventoryManager.Instance != null)
             {
@@ -139,10 +84,7 @@ public class FarmManager : MonoBehaviour
                 Debug.LogWarning("[FarmManager] InventoryManager instance missing.");
             }
 
-            readyTiles.Remove(closest);
-
-            if (readyTiles.Count == 0 && HUD.Instance != null)
-                HUD.Instance.HideHarvestAlert();
+            readyTiles.Remove(tile);
         }
 
         return result;

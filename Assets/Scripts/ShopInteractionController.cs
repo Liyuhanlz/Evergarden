@@ -39,7 +39,9 @@ public class ShopInteractionController : MonoBehaviour
 
     [Header("References")]
     public ShopUI shopUI;
-    public Canvas exitCueCanvas;
+    [Tooltip("The \"Press B to exit\" cue -- lives inside ShopCanvas itself now (below the " +
+             "detail panel), so it's a plain GameObject rather than its own separate Canvas")]
+    public GameObject exitCueCanvas;
 
     bool inShopMode = false;
     Vector3 savedOriginPos;
@@ -63,7 +65,7 @@ public class ShopInteractionController : MonoBehaviour
         Instance = this;
 
         if (exitCueCanvas != null)
-            exitCueCanvas.gameObject.SetActive(false);
+            exitCueCanvas.SetActive(false);
     }
 
     void Start()
@@ -117,7 +119,7 @@ public class ShopInteractionController : MonoBehaviour
         if (!inShopMode) return;
 
         if (shopUI != null) shopUI.Close();
-        if (exitCueCanvas != null) exitCueCanvas.gameObject.SetActive(false);
+        if (exitCueCanvas != null) exitCueCanvas.SetActive(false);
 
         if (transitionRoutine != null) StopCoroutine(transitionRoutine);
         transitionRoutine = StartCoroutine(TransitionOrigin(savedOriginPos, savedOriginRot, OnExitShopComplete));
@@ -126,7 +128,7 @@ public class ShopInteractionController : MonoBehaviour
     void OnEnterShopComplete()
     {
         if (shopUI != null) shopUI.Open();
-        if (exitCueCanvas != null) exitCueCanvas.gameObject.SetActive(true);
+        if (exitCueCanvas != null) exitCueCanvas.SetActive(true);
     }
 
     void OnExitShopComplete()

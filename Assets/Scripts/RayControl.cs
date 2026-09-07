@@ -25,8 +25,13 @@ public class RayControl : MonoBehaviour
 
         bool holdingObject = rayInteractor.interactablesSelected.Count > 0;
 
-        // Disable ray only when trigger is held AND something is grabbed
-        // This keeps the ray active for UI clicks and empty-air trigger pulls
-        rayInteractor.enabled = !(triggerHeld && holdingObject);
+        // Block NEW selections only when trigger is held AND something is
+        // already grabbed, so a grabbed object doesn't fight the ray for the
+        // same trigger press. Previously this disabled the whole component,
+        // which also killed XRInteractorLineVisual (the ray disappeared) and
+        // UI raycasting (backpack/shop clicks stopped working) for as long as
+        // the trigger was held -- allowSelect blocks new selects without
+        // touching either of those, so the ray and UI clicks keep working.
+        rayInteractor.allowSelect = !(triggerHeld && holdingObject);
     }
 }

@@ -26,6 +26,26 @@ public class CropData : ScriptableObject
     [Tooltip("Base sell price per item in the shop")]
     public int sellPrice = 10;
 
+    [Header("Multi-Harvest (e.g. broccoli side shoots)")]
+    [Tooltip("Real crops like broccoli, tomatoes, and lettuce keep producing after the first cut, " +
+             "instead of being pulled up whole like a carrot. If true, harvesting this crop leaves " +
+             "the plant in the ground to regrow for another (smaller) harvest, up to Max Harvests " +
+             "times, before the plot is finally cleared.")]
+    public bool isMultiHarvest = false;
+
+    [Tooltip("Extra watered days needed to regrow a follow-up harvest -- usually much shorter than " +
+             "the initial Days To Mature, since the plant is already established")]
+    public int regrowDays = 2;
+
+    [Tooltip("Total harvests obtainable from one planting before the plot is cleared. 1 = behaves " +
+             "like a normal single-harvest crop even if Is Multi Harvest is on.")]
+    public int maxHarvests = 1;
+
+    [Tooltip("Yield multiplier for regrowth harvests (the 2nd and later) -- side shoots are smaller " +
+             "than the main harvest")]
+    [Range(0f, 1f)]
+    public float regrowthYieldMultiplier = 0.5f;
+
     [Header("UI")]
     [Tooltip("Icon shown in the inventory slot -- drag a Sprite here")]
     public Sprite icon;

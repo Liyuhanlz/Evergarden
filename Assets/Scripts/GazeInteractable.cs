@@ -54,6 +54,11 @@ public class GazeInteractable : MonoBehaviour
     [Tooltip("Fires when the player presses the right-hand A button while this is being gazed at")]
     public UnityEvent onInteractPressed;
 
+    [Tooltip("Fires every frame this instance owns the shared Prompt Canvas (including the frame " +
+             "it first claims it). A listener can use this to refresh the canvas's contents (e.g. " +
+             "retext a shared status display) right before it becomes visible to the player.")]
+    public UnityEvent onCanvasClaimed;
+
     public bool IsGazedAt { get; private set; }
     float currentGazeAngle;
 
@@ -145,6 +150,7 @@ public class GazeInteractable : MonoBehaviour
             promptOwners[promptCanvas] = this;
             promptCanvas.gameObject.SetActive(true);
             PositionPrompt();
+            onCanvasClaimed?.Invoke();
         }
         else if (promptOwners.TryGetValue(promptCanvas, out var owner) && owner == this)
         {

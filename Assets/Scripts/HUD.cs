@@ -12,6 +12,10 @@ public class HUD : MonoBehaviour
     public TextMeshProUGUI timeText;
     public TextMeshProUGUI dayText;
 
+    [Header("Wallet Display")]
+    [Tooltip("Shows PlayerWallet.Gold, prefixed with $ -- updates live as the player buys/sells")]
+    public TextMeshProUGUI goldText;
+
     [Header("Harvest Alert")]
     public GameObject harvestAlertPanel;
     public TextMeshProUGUI harvestAlertText;
@@ -51,6 +55,7 @@ public class HUD : MonoBehaviour
     void Update()
     {
         UpdateTimeDisplay();
+        UpdateGoldDisplay();
         UpdateAlertTimer();
         UpdateBillboard();
     }
@@ -65,6 +70,12 @@ public class HUD : MonoBehaviour
 
         if (dayText != null)
             dayText.text = GameClock.Instance.GetDayString();    // "Day 3"
+    }
+
+    void UpdateGoldDisplay()
+    {
+        if (goldText != null && PlayerWallet.Instance != null)
+            goldText.text = "$" + PlayerWallet.Instance.Gold;
     }
 
     // Auto-hide alert after duration

@@ -17,6 +17,10 @@ public class InventoryManager : MonoBehaviour
 
     private List<GameObject> spawnedSlots = new List<GameObject>();
 
+    // ShopUI's Sell tab subscribes to this so its counts stay live whether a
+    // crop was added by harvesting or removed by selling.
+    public event System.Action OnInventoryChanged;
+
     void Awake()
     {
         if (Instance != null && Instance != this)
@@ -63,6 +67,7 @@ public class InventoryManager : MonoBehaviour
         }
 
         RefreshUI();
+        OnInventoryChanged?.Invoke();
     }
 
     public bool RemoveCrop(string cropName, int amount = 1)
@@ -79,6 +84,7 @@ public class InventoryManager : MonoBehaviour
         }
 
         RefreshUI();
+        OnInventoryChanged?.Invoke();
         return true;
     }
 

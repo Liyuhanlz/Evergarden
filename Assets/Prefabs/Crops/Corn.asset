@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e196547546c6f424c8348bd1f3945667, type: 3}
+  m_Name: Corn
+  m_EditorClassIdentifier: 
+  cropName: Corn
+  daysToMature: 1
+  growthStagePrefabs:
+  - {fileID: 8809861818167712081, guid: 8ac235ce80ed4f26b02bf61725514ea3, type: 3}
+  - {fileID: 2324875626433909585, guid: 7701763c67bc4b6886033ab5f2f07ae1, type: 3}
+  - {fileID: 7033879699708888401, guid: 9fa97385dd7f4114b19185fb7010115c, type: 3}
+  harvestYield: 4
+  sellPrice: 8
+  icon: {fileID: 0}

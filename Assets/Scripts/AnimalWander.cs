@@ -88,6 +88,29 @@ public class AnimalWander : MonoBehaviour
 
         StartCoroutine(WanderRoutine());
         StartCoroutine(SoundRoutine());
+
+        // Freezes in place whenever a menu pauses game time (Inventory, the
+        // Seed picker, etc.) -- same GameClock.IsPaused flag Farmland already
+        // watches for crop growth, so animals stop wandering right alongside
+        // day progression rather than continuing to roam in the background.
+        if (GameClock.Instance != null)
+            GameClock.Instance.OnPauseChanged += HandlePauseChanged;
+    }
+
+    void OnDestroy()
+    {
+        if (GameClock.Instance != null)
+            GameClock.Instance.OnPauseChanged -= HandlePauseChanged;
+    }
+
+    private bool isPaused;
+
+    void HandlePauseChanged(bool paused)
+    {
+        isPaused = paused;
+
+        if (agent != null && agent.isOnNavMesh)
+            agent.isStopped = paused;
     }
 
     void Update()
@@ -108,16 +131,33 @@ public class AnimalWander : MonoBehaviour
     {
         while (true)
         {
+            // Don't start a new walk/idle cycle while paused -- and don't let
+            // WaitForSeconds keep counting down in the background either,
+            // since its own SetDestination/ResetPath calls at the end of each
+            // wait would otherwise clear NavMeshAgent.isStopped right back to
+            // false out from under HandlePauseChanged's one-time set above.
+            while (isPaused) yield return null;
+
             Vector3 destination = GetRandomNavMeshPosition();
             agent.SetDestination(destination);
 
-            float walkTime = Random.Range(walkDurationRange.x, walkDurationRange.y);
-            yield return new WaitForSeconds(walkTime);
+            yield return WaitRealSecondsUnlessPaused(Random.Range(walkDurationRange.x, walkDurationRange.y));
 
             agent.ResetPath();
 
-            float idleTime = Random.Range(idleDurationRange.x, idleDurationRange.y);
-            yield return new WaitForSeconds(idleTime);
+            yield return WaitRealSecondsUnlessPaused(Random.Range(idleDurationRange.x, idleDurationRange.y));
+        }
+    }
+
+    // Like WaitForSeconds, but frozen (not just slowed) while paused -- the
+    // countdown simply doesn't advance until HandlePauseChanged clears isPaused.
+    IEnumerator WaitRealSecondsUnlessPaused(float seconds)
+    {
+        float elapsed = 0f;
+        while (elapsed < seconds)
+        {
+            if (!isPaused) elapsed += Time.deltaTime;
+            yield return null;
         }
     }
 

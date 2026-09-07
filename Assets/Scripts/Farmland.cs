@@ -21,10 +21,38 @@ public class Farmland : MonoBehaviour
     [Header("Crop (set at runtime)")]
     public CropData cropData;
     public int daysWatered = 0;
+    public int timesHarvested = 0;
+
+    [Header("Soil Health (0-100, read-only at runtime)")]
+    [Tooltip("Nutrient level of this plot. Depletes when you harvest, recovers while left fallow " +
+             "(tilled but unplanted). Real farmland works the same way -- repeated planting drains " +
+             "the specific nutrients that crop needs, rotating to a different crop is gentler, and " +
+             "resting the field lets it recover.")]
+    public float soilHealth = 100f;
+
+    [Tooltip("Soil below this refuses new plantings -- it needs to rest fallow, or be rotated to a " +
+             "different crop, before it recovers enough to plant again")]
+    public float minHealthToPlant = 15f;
+
+    [Tooltip("Fertility lost on harvest when the same crop is grown here twice in a row")]
+    public float sameCropDepletion = 20f;
+
+    [Tooltip("Fertility lost on harvest when a different crop is grown here than last time -- " +
+             "crop rotation is easier on the soil than monoculture")]
+    public float rotatedCropDepletion = 6f;
+
+    [Tooltip("Fertility regained per day this tile sits tilled and empty (fallow)")]
+    public float fallowRecoveryPerDay = 3f;
+
+    private string lastHarvestedCropName;
 
     public Transform cropSpawnPoint;
     private GameObject spawnedCropModel;
     private int lastDisplayedStage = -1;
+
+    // Set by Harvest() so FarmManager can scale the yield down for a
+    // regrowth (side-shoot) harvest instead of a full first harvest.
+    public bool LastHarvestWasRegrowth { get; private set; }
 
     // FarmManager subscribes to this to show harvest alerts
     public event System.Action<Farmland> OnReadyToHarvest;
@@ -63,6 +91,10 @@ public class Farmland : MonoBehaviour
         // Reset watered tiles back to planted each morning
         if (state == TileState.Watered)
             SetState(TileState.Planted);
+
+        // Resting: tilled but nothing planted lets the soil recover
+        if (state == TileState.Tilled && cropData == null)
+            soilHealth = Mathf.Clamp(soilHealth + fallowRecoveryPerDay, 0f, 100f);
     }
 
     // State machine
@@ -85,10 +117,28 @@ public class Farmland : MonoBehaviour
     // Called by SeedBag particle collision
     public bool TryPlant(CropData data)
     {
+        if (data == null) return false;
         if (state != TileState.Tilled || cropData != null) return false;
+
+        if (soilHealth < minHealthToPlant)
+        {
+            Debug.Log("[Farmland] Soil too depleted to plant here (" + soilHealth.ToString("F0") +
+                      "%). Let it rest fallow, or rotate to a different crop next time.");
+            return false;
+        }
+
+        // Seeds are a real, merchant-bought resource (see SeedInventory/ShopUI) --
+        // checked last so a doomed planting attempt (bad tile state, depleted
+        // soil) never costs the player a seed they never had a chance to plant.
+        if (SeedInventory.Instance != null && !SeedInventory.Instance.RemoveSeed(data.cropName, 1))
+        {
+            Debug.Log("[Farmland] No " + data.cropName + " seeds left -- buy more from the merchant.");
+            return false;
+        }
 
         cropData = data;
         daysWatered = 0;
+        timesHarvested = 0;
         lastDisplayedStage = -1;
         SetState(TileState.Planted);
         RefreshCropVisual();
@@ -102,8 +152,35 @@ public class Farmland : MonoBehaviour
         if (cropData == null || !cropData.IsReadyToHarvest(daysWatered)) return null;
 
         CropData harvested = cropData;
+        timesHarvested++;
+
+        // Same crop twice in a row drains the soil harder than rotating --
+        // regrowth (side-shoot) harvests are gentler since it's still the
+        // same planting, not a fresh crop drawing on the same nutrients again.
+        bool willRegrow = harvested.isMultiHarvest && timesHarvested < harvested.maxHarvests;
+        float depletion = harvested.cropName == lastHarvestedCropName ? sameCropDepletion : rotatedCropDepletion;
+        if (willRegrow) depletion *= 0.5f;
+        soilHealth = Mathf.Clamp(soilHealth - depletion, 0f, 100f);
+
+        LastHarvestWasRegrowth = timesHarvested > 1;
+
+        if (willRegrow)
+        {
+            // Leave the plant in place -- rewind daysWatered so it needs
+            // regrowDays more waterings before the next (smaller) harvest,
+            // reusing the same maturity/stage math instead of a parallel system.
+            daysWatered = Mathf.Max(0, harvested.daysToMature - harvested.regrowDays);
+            lastDisplayedStage = -1;
+            RefreshCropVisual();
+            SetState(TileState.Planted);
+            Debug.Log("[Farmland] Harvested " + harvested.cropName + " -- it will regrow for another round.");
+            return harvested;
+        }
+
+        lastHarvestedCropName = harvested.cropName;
         cropData = null;
         daysWatered = 0;
+        timesHarvested = 0;
         lastDisplayedStage = -1;
 
         if (spawnedCropModel != null)
