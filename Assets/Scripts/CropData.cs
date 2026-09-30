@@ -50,6 +50,14 @@ public class CropData : ScriptableObject
     [Tooltip("Icon shown in the inventory slot -- drag a Sprite here")]
     public Sprite icon;
 
+    [Header("Education (Magnifying Glass)")]
+    [TextArea(2, 4)]
+    [Tooltip("Shown first when the Magnifying Glass is pointed at this crop's tile -- one or two sentences")]
+    public string summary;
+
+    [Tooltip("Extra fun facts, paged through one at a time with the A button, in order")]
+    public List<string> facts = new List<string>();
+
     // Helpers
 
     // Total number of visual stages (driven by how many prefabs you assign)

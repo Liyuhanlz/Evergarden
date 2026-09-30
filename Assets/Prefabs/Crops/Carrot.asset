@@ -19,4 +19,14 @@ MonoBehaviour:
   - {fileID: 9166320790681478603, guid: 1c7e65cd176bcc84bb198f6744087957, type: 3}
   harvestYield: 4
   sellPrice: 10
+  isMultiHarvest: 0
+  regrowDays: 2
+  maxHarvests: 1
+  regrowthYieldMultiplier: 0.5
   icon: {fileID: 21300000, guid: 972ad0977ab01cb4a8d5b7c5cd1539e1, type: 3}
+  summary: A root vegetable that grows underground, ready to pull once the leafy
+    top matures.
+  facts:
+  - Carrots were originally purple -- the familiar orange variety was bred in the
+    Netherlands.
+  - The green tops are edible too and taste a bit like parsley.

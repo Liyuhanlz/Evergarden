@@ -20,4 +20,13 @@ MonoBehaviour:
   - {fileID: 7033879699708888401, guid: 9fa97385dd7f4114b19185fb7010115c, type: 3}
   harvestYield: 4
   sellPrice: 8
-  icon: {fileID: 0}
+  isMultiHarvest: 0
+  regrowDays: 2
+  maxHarvests: 1
+  regrowthYieldMultiplier: 0.5
+  icon: {fileID: 21300000, guid: e8075d59f453aa24d82a460a981f1642, type: 3}
+  summary: A tall grain crop grown for its kernels, which ripen inside a protective
+    husk.
+  facts:
+  - Each corn kernel is a separate seed, and one ear can have 800 of them.
+  - Corn silk -- the golden threads at the top -- carries pollen to each kernel.

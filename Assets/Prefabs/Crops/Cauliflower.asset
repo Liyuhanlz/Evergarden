@@ -20,4 +20,12 @@ MonoBehaviour:
   - {fileID: 7271465185507134801, guid: 35bf6510c2344054bdb8e247c51e8627, type: 3}
   harvestYield: 3
   sellPrice: 18
-  icon: {fileID: 0}
+  isMultiHarvest: 0
+  regrowDays: 2
+  maxHarvests: 1
+  regrowthYieldMultiplier: 0.5
+  icon: {fileID: 21300000, guid: 144c5ebbf3d5b0a419e44ae8e6ee8267, type: 3}
+  summary: A cool-weather crop related to broccoli, grown for its dense white head.
+  facts:
+  - The white head is called a 'curd', made of undeveloped flower buds.
+  - Cauliflower comes in purple and orange varieties too, not just white.

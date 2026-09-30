@@ -32,6 +32,11 @@ public class MenuManager : MonoBehaviour
     [Tooltip("Canvas / panel shown when Inventory is open")]
     public GameObject inventoryPanel;
 
+    [Tooltip("Crops/Tool/Seeds tab buttons -- a sibling of InventoryPanel under MenuCanvas, not a " +
+             "child of it, so it needs its own explicit show/hide alongside InventoryPanel rather " +
+             "than following it automatically")]
+    public GameObject tabBar;
+
     [Tooltip("Canvas / panel shown when Pause is open")]
     public GameObject pausePanel;
 
@@ -216,8 +221,17 @@ public class MenuManager : MonoBehaviour
     void OpenInventory()
     {
         inventoryOpen = true;
-        PositionPanel(inventoryPanel);
+
+        // Positions the whole MenuCanvas (InventoryPanel's parent), not just
+        // InventoryPanel itself -- TabBar and the HUD's date/time/money text
+        // are siblings of InventoryPanel under the same canvas, not children
+        // of it, so moving InventoryPanel alone left them stranded at their
+        // last edit-time position instead of following the panel to face the
+        // player, which is what made the tab bar appear to float somewhere
+        // else entirely whenever the backpack opened from a different spot.
+        PositionPanel(inventoryPanel.transform.parent.gameObject);
         SetActive(inventoryPanel, true);
+        SetActive(tabBar, true);
         SetInventoryTab(currentTab); // reopen to whichever tab was last selected
         DisableMenuLocomotion();
         PauseGameClock();
@@ -228,6 +242,7 @@ public class MenuManager : MonoBehaviour
     {
         inventoryOpen = false;
         SetActive(inventoryPanel, false);
+        SetActive(tabBar, false);
 
         // Tab content that lives outside the InventoryPanel itself (the tool
         // rack's 3D sockets, the seed picker's own canvas) needs to be told
@@ -332,10 +347,17 @@ public class MenuManager : MonoBehaviour
     // X no longer opens the tool rack directly -- it toggles whether ray-hovering
     // a farmland tile shows its status window (FarmlandHoverStatus.ModeActive).
     // The tool rack itself now lives inside the Y-button backpack's Tool tab.
+    //
+    // Temporarily disabled -- crop status mode is too buggy/unstable right now.
+    // X press is a no-op until this is revisited; FarmlandHoverStatus.ModeActive
+    // stays false so the status window never shows.
     void ToggleCropStatusMode()
     {
+        return;
+#pragma warning disable CS0162
         FarmlandHoverStatus.ModeActive = !FarmlandHoverStatus.ModeActive;
         Debug.Log("[MenuManager] Crop status mode " + (FarmlandHoverStatus.ModeActive ? "ON" : "OFF") + ".");
+#pragma warning restore CS0162
     }
 
     // Called by anything that needs the screen to itself for a moment --
@@ -508,6 +530,7 @@ public class MenuManager : MonoBehaviour
     void HideAll()
     {
         SetActive(inventoryPanel, false);
+        SetActive(tabBar, false);
         SetActive(pausePanel, false);
         SetActive(settingsPanel, false);
 

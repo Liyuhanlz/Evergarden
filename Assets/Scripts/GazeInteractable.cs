@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR;
+using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.Events;
 
 // Generic "look at it to interact" prompt. Shows promptCanvas whenever the
@@ -76,10 +77,17 @@ public class GazeInteractable : MonoBehaviour
     InputDevice rightHandDevice;
     bool prevAPressed = false;
 
+    // Optional -- only present on grabbable tools, not the booth. When set,
+    // "Hold Grip to Grab" stops showing once a real hand is actually
+    // holding this, so the prompt doesn't keep telling the player to do
+    // something they're already doing.
+    XRGrabInteractable grabInteractable;
+
     void Awake()
     {
         if (promptCanvas != null) promptCanvas.gameObject.SetActive(false);
         if (playerCamera == null && Camera.main != null) playerCamera = Camera.main.transform;
+        grabInteractable = GetComponent<XRGrabInteractable>();
     }
 
     void OnEnable()
@@ -117,7 +125,7 @@ public class GazeInteractable : MonoBehaviour
 
     void UpdateGazeState()
     {
-        if (playerCamera == null)
+        if (playerCamera == null || IsHeldByHand())
         {
             IsGazedAt = false;
             return;
@@ -216,5 +224,19 @@ public class GazeInteractable : MonoBehaviour
     void GetRightHandDevice()
     {
         rightHandDevice = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
+    }
+
+    // True only while a real hand -- not the tool rack's socket -- is
+    // holding this. The rack socket "selects" a seated tool too (that's how
+    // it stays seated there), and that must not count, or the prompt would
+    // never show for a tool just sitting in the rack waiting to be grabbed.
+    bool IsHeldByHand()
+    {
+        if (grabInteractable == null) return false;
+
+        foreach (var interactor in grabInteractable.interactorsSelecting)
+            if (!(interactor is XRSocketInteractor)) return true;
+
+        return false;
     }
 }
