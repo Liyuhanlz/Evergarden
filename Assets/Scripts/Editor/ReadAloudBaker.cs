@@ -18,8 +18,12 @@ using Debug = UnityEngine.Debug;
 // ReadAloudLibrary.asset along with each word's timing. The headset build
 // then plays these directly -- no speech engine needed on the Quest.
 //
-// Incremental: lines already recorded are kept, only new/changed text is
-// synthesized, and clips for text that no longer exists are deleted. Also
+// Clips are named after their object and line -- read_horse_summary,
+// read_horse_fact1, read_watering_can_summary, ...
+//
+// Incremental: lines already recorded are kept (renamed if their name
+// changed), only new/changed text is synthesized, and clips for text that no
+// longer exists are deleted. Also
 // runs automatically at the start of every build, so edited InfoData/
 // CropData text can't ship with stale or missing audio.
 public class ReadAloudBaker : IPreprocessBuildWithReport
@@ -41,17 +45,38 @@ public class ReadAloudBaker : IPreprocessBuildWithReport
         Bake(true);
     }
 
-    // Every line the window can read, exactly as ReadAloudButton composes it.
-    static List<string> CollectLines()
+    // Every line the window can read, exactly as ReadAloudButton composes it,
+    // mapped to the clip name it's saved under: read_<object>_summary and
+    // read_<object>_fact1, _fact2, ... (e.g. read_horse_fact2), so each clip
+    // is easy to find in the Project window.
+    static Dictionary<string, string> CollectLines()
     {
-        var lines = new SortedSet<string>(StringComparer.Ordinal);
+        var lines = new Dictionary<string, string>(StringComparer.Ordinal);
+        var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        void AddLine(string text, string name)
+        {
+            if (lines.ContainsKey(text)) return;
+
+            // Two objects sharing a display name still get distinct files.
+            string unique = name;
+            for (int n = 2; usedNames.Contains(unique); n++) unique = name + "_" + n;
+
+            usedNames.Add(unique);
+            lines[text] = unique;
+        }
 
         void Add(string title, string summary, List<string> facts)
         {
-            if (!string.IsNullOrWhiteSpace(summary)) lines.Add(TextToSpeech.Compose(new[] { title, summary }));
+            string baseName = "read_" + Slug(title);
+
+            if (!string.IsNullOrWhiteSpace(summary))
+                AddLine(TextToSpeech.Compose(new[] { title, summary }), baseName + "_summary");
+
             if (facts == null) return;
-            foreach (string fact in facts)
-                if (!string.IsNullOrWhiteSpace(fact)) lines.Add(TextToSpeech.Compose(new[] { title, fact }));
+            for (int i = 0; i < facts.Count; i++)
+                if (!string.IsNullOrWhiteSpace(facts[i]))
+                    AddLine(TextToSpeech.Compose(new[] { title, facts[i] }), baseName + "_fact" + (i + 1));
         }
 
         foreach (string guid in AssetDatabase.FindAssets("t:InfoData"))
@@ -66,21 +91,25 @@ public class ReadAloudBaker : IPreprocessBuildWithReport
             if (d != null) Add(d.cropName, d.summary, d.facts);
         }
 
-        return lines.ToList();
+        return lines;
     }
 
-    static string FileNameFor(string text)
+    // "Watering Can" -> "watering_can"
+    static string Slug(string title)
     {
-        using (var md5 = System.Security.Cryptography.MD5.Create())
+        var sb = new System.Text.StringBuilder();
+        foreach (char c in (title ?? "").Trim().ToLowerInvariant())
         {
-            byte[] hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(text));
-            return "read_" + BitConverter.ToString(hash, 0, 6).Replace("-", "").ToLowerInvariant() + ".wav";
+            if (char.IsLetterOrDigit(c)) sb.Append(c);
+            else if (sb.Length > 0 && sb[sb.Length - 1] != '_') sb.Append('_');
         }
+        string slug = sb.ToString().Trim('_');
+        return slug.Length > 0 ? slug : "unnamed";
     }
 
     static void Bake(bool interactive)
     {
-        List<string> wanted = CollectLines();
+        Dictionary<string, string> wanted = CollectLines();
 
         EnsureFolder(AudioFolder);
         EnsureFolder(LibraryFolder);
@@ -92,19 +121,33 @@ public class ReadAloudBaker : IPreprocessBuildWithReport
             AssetDatabase.CreateAsset(library, LibraryPath);
         }
 
-        // Keep anything already recorded whose clip is still there.
+        // Keep anything already recorded whose text is still in use and
+        // whose clip is still there.
         var existing = new Dictionary<string, ReadAloudLibrary.Line>(StringComparer.Ordinal);
         foreach (ReadAloudLibrary.Line line in library.lines)
-            if (line != null && line.clip != null && !string.IsNullOrEmpty(line.text))
+            if (line != null && line.clip != null && !string.IsNullOrEmpty(line.text) && wanted.ContainsKey(line.text))
                 existing[line.text] = line;
 
-        List<string> toRecord = wanted.Where(t => !existing.ContainsKey(t)).ToList();
+        // Clips for text that no longer exists anywhere -- deleted first so
+        // their file names are free for re-recorded lines (an edited fact
+        // keeps its read_<object>_factN name).
+        var keepFiles = new HashSet<string>(existing.Values.Select(l => AssetDatabase.GetAssetPath(l.clip)), StringComparer.OrdinalIgnoreCase);
+        int removed = 0;
+        foreach (string guid in AssetDatabase.FindAssets("t:AudioClip", new[] { AudioFolder }))
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            if (!keepFiles.Contains(path) && AssetDatabase.DeleteAsset(path)) removed++;
+        }
+
+        int renamed = RenameKeptClips(existing, wanted);
+
+        List<string> toRecord = wanted.Keys.Where(t => !existing.ContainsKey(t)).ToList();
 
         var recorded = new Dictionary<string, ReadAloudLibrary.Line>(StringComparer.Ordinal);
         if (toRecord.Count > 0)
         {
 #if UNITY_EDITOR_WIN
-            recorded = Record(toRecord);
+            recorded = Record(toRecord, wanted);
 #else
             Debug.LogWarning("Read Aloud: " + toRecord.Count + " line(s) need recording, which uses Windows' voice -- bake on a Windows machine.");
 #endif
@@ -113,30 +156,21 @@ public class ReadAloudBaker : IPreprocessBuildWithReport
         foreach (ReadAloudLibrary.Line line in existing.Values)
             ConfigureImport(AssetDatabase.GetAssetPath(line.clip));
 
-        // Rebuild the list in a stable order.
+        // Rebuild the list, ordered by clip name so it reads like the folder.
         library.lines = new List<ReadAloudLibrary.Line>();
         int missing = 0;
-        foreach (string text in wanted)
+        foreach (var pair in wanted.OrderBy(p => p.Value, StringComparer.Ordinal))
         {
-            if (existing.TryGetValue(text, out ReadAloudLibrary.Line line) || recorded.TryGetValue(text, out line))
+            if (existing.TryGetValue(pair.Key, out ReadAloudLibrary.Line line) || recorded.TryGetValue(pair.Key, out line))
                 library.lines.Add(line);
             else
                 missing++;
         }
 
-        // Clips for text that no longer exists anywhere.
-        var keepFiles = new HashSet<string>(library.lines.Select(l => AssetDatabase.GetAssetPath(l.clip)), StringComparer.OrdinalIgnoreCase);
-        int removed = 0;
-        foreach (string guid in AssetDatabase.FindAssets("t:AudioClip", new[] { AudioFolder }))
-        {
-            string path = AssetDatabase.GUIDToAssetPath(guid);
-            if (!keepFiles.Contains(path) && AssetDatabase.DeleteAsset(path)) removed++;
-        }
-
         EditorUtility.SetDirty(library);
         AssetDatabase.SaveAssets();
 
-        string summary = "Read Aloud: " + library.lines.Count + " line(s) ready (" + recorded.Count + " newly recorded, " + removed + " stale clip(s) removed)" +
+        string summary = "Read Aloud: " + library.lines.Count + " line(s) ready (" + recorded.Count + " newly recorded, " + renamed + " renamed, " + removed + " stale clip(s) removed)" +
                          (missing > 0 ? ", " + missing + " MISSING -- see warnings above" : "") + ".";
         if (missing > 0) Debug.LogWarning(summary);
         else Debug.Log(summary);
@@ -144,11 +178,33 @@ public class ReadAloudBaker : IPreprocessBuildWithReport
         if (interactive) EditorUtility.DisplayDialog("Bake Read Aloud Audio", summary, "OK");
     }
 
+    // Gives kept clips their current name (facts reordered, an object
+    // renamed, or clips from before names were used). AssetDatabase.RenameAsset
+    // keeps each clip's GUID, so the library's references survive. Done in two
+    // passes via temporary names so two clips swapping names can't collide.
+    static int RenameKeptClips(Dictionary<string, ReadAloudLibrary.Line> kept, Dictionary<string, string> wanted)
+    {
+        var toRename = kept.Values.Where(l => l.clip.name != wanted[l.text]).ToList();
+
+        foreach (ReadAloudLibrary.Line line in toRename)
+            AssetDatabase.RenameAsset(AssetDatabase.GetAssetPath(line.clip), "tmp_" + Guid.NewGuid().ToString("N"));
+
+        int renamed = 0;
+        foreach (ReadAloudLibrary.Line line in toRename)
+        {
+            string error = AssetDatabase.RenameAsset(AssetDatabase.GetAssetPath(line.clip), wanted[line.text]);
+            if (string.IsNullOrEmpty(error)) renamed++;
+            else Debug.LogWarning("Read Aloud: couldn't rename clip to " + wanted[line.text] + " -- " + error);
+        }
+
+        return renamed;
+    }
+
 #if UNITY_EDITOR_WIN
     // Runs the same hidden-PowerShell voice host TextToSpeech uses at
     // runtime, feeding it every line in one go and collecting the WAVs + word
     // timings it reports back.
-    static Dictionary<string, ReadAloudLibrary.Line> Record(List<string> texts)
+    static Dictionary<string, ReadAloudLibrary.Line> Record(List<string> texts, Dictionary<string, string> names)
     {
         var result = new Dictionary<string, ReadAloudLibrary.Line>(StringComparer.Ordinal);
         var paths = new string[texts.Count];
@@ -158,7 +214,7 @@ public class ReadAloudBaker : IPreprocessBuildWithReport
         string projectRoot = Path.GetDirectoryName(Application.dataPath);
         for (int i = 0; i < texts.Count; i++)
         {
-            paths[i] = AudioFolder + "/" + FileNameFor(texts[i]);
+            paths[i] = AudioFolder + "/" + names[texts[i]] + ".wav";
             words[i] = new List<(float, int, int)>();
         }
 
