@@ -2,14 +2,19 @@ using UnityEngine;
 using UnityEngine.XR;
 using UnityEngine.XR.Interaction.Toolkit;
 
-// Scrolls the tool rack's Track left/right using the right-hand thumbstick
-// while the tool inventory is open, settling on whichever socket is nearest
-// center when the stick returns to neutral. Only the centered tool is shown
-// -- every other tool's renderers/colliders are switched off, so the window
-// only ever presents one tool at a time no matter how many sockets are on
-// the rack.
+// Steps the tool rack one tool at a time with the right-hand thumbstick while
+// the tool inventory is open: each flick left/right moves to the previous/
+// next socket in Slots (wrapping around past either end) and jumps the Track
+// so that socket sits exactly at panel center. Only the selected tool is shown -- every other tool's
+// renderers/colliders are switched off, so the window only ever
+// presents one tool at a time no matter how many sockets are on the rack.
 //
-// This replaced an earlier grab-and-drag version. A physical ray/hand grab
+// This replaced a free-scrolling version that snapped the Track to multiples
+// of a fixed spacing -- with an even number of sockets those snap points fell
+// halfway between two tools, so nothing was ever actually centered. Centering
+// on each socket's own position has no such dependency on count or spacing.
+//
+// That in turn replaced an earlier grab-and-drag version. A physical ray/hand grab
 // requires XRI to keep re-validating that the interactor is still aimed at
 // (or touching) the held object, and dragging sideways is exactly the
 // motion that swings a ray off a thin handle -- it kept releasing before
@@ -17,44 +22,48 @@ using UnityEngine.XR.Interaction.Toolkit;
 // headset. Reading a thumbstick axis has none of that failure mode.
 public class ToolRackDrag : MonoBehaviour
 {
-    [Tooltip("The rack of sockets that slides as you scroll")]
+    [Tooltip("The rack of sockets that moves to center the selected tool")]
     public Transform track;
 
     [Tooltip("The sockets on the track, left to right, in the same order they're placed. " +
-             "Used to figure out which one is centered so every other tool can be hidden.")]
+             "The stick steps through them in this order.")]
     public XRSocketInteractor[] slots;
 
-    [Tooltip("Distance between adjacent tool sockets on the track -- also the snap step")]
-    public float spacing = 0.6f;
+    [Tooltip("Stick deflection past this counts as a flick to the next/previous tool")]
+    public float stickThreshold = 0.6f;
 
-    [Tooltip("How many sockets are on the track (rack spans (count-1) * spacing)")]
-    public int socketCount = 3;
+    [Tooltip("The stick must return below this before another flick registers, " +
+             "so holding it over steps only once")]
+    public float stickResetThreshold = 0.3f;
 
-    [Tooltip("Units per second the rack scrolls while the stick is fully deflected")]
-    public float scrollSpeed = 0.8f;
-
-    [Tooltip("Units per second the rack glides to the nearest tool once the stick is released")]
-    public float snapSpeed = 2.5f;
-
-    [Tooltip("Stick deflection below this is ignored, so it settles instead of drifting")]
-    public float stickDeadzone = 0.2f;
-
-    private float minX;
-    private float maxX;
-    private bool snapping;
-    private float snapTargetX;
+    private int selectedSlot = 0;
+    private bool stickArmed = true;
     private int visibleSlot = -1;
 
-    void Awake()
+    // A tool seated after the last visibility pass (e.g. snapped back by
+    // ReturnToRackOnDrop into an off-center socket) would otherwise stay fully
+    // visible, so force a fresh pass whenever any socket picks one up.
+    void OnEnable()
     {
-        float half = Mathf.Max(0, socketCount - 1) * spacing * 0.5f;
-        minX = -half;
-        maxX = half;
+        if (slots == null) return;
+        foreach (var slot in slots)
+            if (slot != null) slot.selectEntered.AddListener(OnSlotSeated);
     }
+
+    void OnDisable()
+    {
+        if (slots == null) return;
+        foreach (var slot in slots)
+            if (slot != null) slot.selectEntered.RemoveListener(OnSlotSeated);
+    }
+
+    void OnSlotSeated(SelectEnterEventArgs args) => visibleSlot = -1;
 
     void Update()
     {
         if (track == null) return;
+
+        if (slots == null || slots.Length == 0) return;
 
         bool isOpen = MenuManager.Instance != null && MenuManager.Instance.ToolInventoryOpen;
         float stickX = 0f;
@@ -64,63 +73,43 @@ public class ToolRackDrag : MonoBehaviour
             InputDevices.GetDeviceAtXRNode(XRNode.RightHand)
                 .TryGetFeatureValue(CommonUsages.primary2DAxis, out Vector2 axis);
             stickX = axis.x;
-            if (Mathf.Abs(stickX) < stickDeadzone)
-                stickX = 0f;
         }
 
-        if (stickX != 0f)
+        if (Mathf.Abs(stickX) < stickResetThreshold)
         {
-            snapping = false;
-
-            Vector3 pos = track.localPosition;
-            pos.x = Mathf.Clamp(pos.x + stickX * scrollSpeed * Time.deltaTime, minX, maxX);
-            track.localPosition = pos;
+            stickArmed = true;
         }
-        else if (!snapping)
+        else if (stickArmed && Mathf.Abs(stickX) >= stickThreshold)
         {
-            // Stick just returned to neutral (or the panel just closed) --
-            // start gliding to whichever socket is nearest center.
-            snapTargetX = Mathf.Clamp(Mathf.Round(track.localPosition.x / spacing) * spacing, minX, maxX);
-            snapping = true;
+            stickArmed = false;
+            // Wraps around at either end, so the rack loops in both directions.
+            int step = stickX > 0f ? 1 : -1;
+            selectedSlot = (selectedSlot + step + slots.Length) % slots.Length;
         }
 
-        if (snapping)
-        {
-            Vector3 pos = track.localPosition;
-            pos.x = Mathf.MoveTowards(pos.x, snapTargetX, snapSpeed * Time.deltaTime);
-            track.localPosition = pos;
-        }
-
+        CenterSelectedSlot();
         UpdateVisibleSlot();
+    }
+
+    // Offsets the Track by the selected socket's own local x, so that socket
+    // lands exactly at panel-local x = 0 regardless of how the sockets are spaced.
+    void CenterSelectedSlot()
+    {
+        if (slots[selectedSlot] == null) return;
+
+        Vector3 pos = track.localPosition;
+        pos.x = -slots[selectedSlot].transform.localPosition.x;
+        track.localPosition = pos;
     }
 
     void UpdateVisibleSlot()
     {
-        if (slots == null || slots.Length == 0 || track == null) return;
-
-        // Whichever socket sits nearest panel-local x = 0 is the one
-        // currently "in the window".
-        int nearest = 0;
-        float bestDist = float.MaxValue;
-        for (int i = 0; i < slots.Length; i++)
-        {
-            if (slots[i] == null) continue;
-
-            float panelX = track.localPosition.x + slots[i].transform.localPosition.x;
-            float dist = Mathf.Abs(panelX);
-            if (dist < bestDist)
-            {
-                bestDist = dist;
-                nearest = i;
-            }
-        }
-
-        if (nearest == visibleSlot) return;
-        visibleSlot = nearest;
+        if (selectedSlot == visibleSlot) return;
+        visibleSlot = selectedSlot;
 
         for (int i = 0; i < slots.Length; i++)
         {
-            bool visible = i == nearest;
+            bool visible = i == selectedSlot;
             SetSeatedToolVisible(slots[i], visible);
             SetCueVisible(slots[i], visible);
         }

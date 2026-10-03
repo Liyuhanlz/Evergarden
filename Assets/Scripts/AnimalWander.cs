@@ -4,12 +4,14 @@ using UnityEngine.AI;
 
 // Attach to any animal GameObject that has:
 //   - NavMeshAgent component
-//   - Animator component with "Vert" and "State" float parameters
+//   - Animator component with a "Vert" float and a "State" parameter (float
+//     or int -- the Goat & Sheep pack's controller uses an int, the
+//     Animals_FREE ones use a float; whichever it is gets detected in Start)
 //   - AudioSource component
 //
 // Animator parameters match CreatureMover convention:
 //   "Vert"  float: 0 = idle, >0 = walking (use axis magnitude)
-//   "State" float: 0 = walk, 1 = run
+//   "State" float/int: 0 = walk, 1 = run
 
 [RequireComponent(typeof(NavMeshAgent))]
 [RequireComponent(typeof(Animator))]
@@ -42,7 +44,7 @@ public class AnimalWander : MonoBehaviour
     [Tooltip("Float parameter that drives idle/walk blend (0 = idle, >0 = walking)")]
     public string vertParameterName = "Vert";
 
-    [Tooltip("Float parameter that drives walk/run blend (0 = walk, 1 = run)")]
+    [Tooltip("Float or int parameter that drives walk/run (0 = walk, 1 = run)")]
     public string stateParameterName = "State";
 
     [Tooltip("How smoothly Vert transitions between 0 and 1")]
@@ -69,6 +71,12 @@ public class AnimalWander : MonoBehaviour
     private AudioSource audioSource;
     private Vector3 startPosition;
 
+    // The State parameter's actual type on this animal's controller (or null
+    // if it has none). Calling SetFloat on an int parameter logs an error with
+    // a full stack trace -- doing that every frame for every goat/sheep
+    // flooded the log fast enough to freeze play mode.
+    private AnimatorControllerParameterType? stateParameterType;
+
     // =============================================
     //  UNITY LIFECYCLE
     // =============================================
@@ -78,6 +86,9 @@ public class AnimalWander : MonoBehaviour
         animator = GetComponent<Animator>();
         audioSource = GetComponent<AudioSource>();
         startPosition = transform.position;
+
+        foreach (AnimatorControllerParameter p in animator.parameters)
+            if (p.name == stateParameterName) stateParameterType = p.type;
 
         agent.speed = moveSpeed;
         agent.angularSpeed = angularSpeed;
@@ -121,7 +132,12 @@ public class AnimalWander : MonoBehaviour
         float normalizedSpeed = Mathf.Clamp01(speed / moveSpeed);
 
         animator.SetFloat(vertParameterName, normalizedSpeed, animationDampTime, Time.deltaTime);
-        animator.SetFloat(stateParameterName, 0f); // animals always walk, never run
+
+        // Animals always walk, never run.
+        if (stateParameterType == AnimatorControllerParameterType.Float)
+            animator.SetFloat(stateParameterName, 0f);
+        else if (stateParameterType == AnimatorControllerParameterType.Int)
+            animator.SetInteger(stateParameterName, 0);
     }
 
     // =============================================

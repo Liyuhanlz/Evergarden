@@ -57,13 +57,19 @@ public class MagnifyingGlassTarget : MonoBehaviour
     [Tooltip("Drag CenterEyeAnchor or Main Camera here -- only used to face the window toward the player. Defaults to Camera.main if left empty")]
     public Transform playerCamera;
 
-    [Header("Placement (above the detected object)")]
-    public Vector3 promptOffset = new Vector3(0f, 0.5f, 0f);
+    [Header("Placement (beside the detected object)")]
+    [Tooltip("Gap in meters between the object's edge (as seen from the player) and the near edge of the info window")]
+    public float sideGap = 0.06f;
 
-    [Tooltip("How long the info panel waits after losing proximity before actually hiding -- bridges brief separations (the lens grazing the edge of a walking animal) without flicker")]
-    public float loseContactGrace = 0.2f;
+    [Tooltip("How far in meters the window is pulled from the object toward the player, so it reads as floating in front rather than level with it")]
+    public float towardPlayer = 0.1f;
+
+    [Tooltip("How long the info panel stays up after losing proximity before actually hiding -- long enough to read it or press Listen after the animal wanders off, and also bridges brief separations without flicker. If a read-aloud is still playing when this runs out, it stays up until that finishes")]
+    public float loseContactGrace = 5f;
 
     private static readonly Collider[] OverlapBuffer = new Collider[8];
+    private static readonly List<Collider> BoundsColliders = new List<Collider>();
+    private static readonly List<Renderer> BoundsRenderers = new List<Renderer>();
 
     // Whatever the lens is currently (or was most recently, within the
     // grace period) near. Only one at a time -- if several things are in
@@ -75,12 +81,22 @@ public class MagnifyingGlassTarget : MonoBehaviour
 
     private InputDevice rightHandDevice;
     private bool prevAdvancePressed;
+    private bool prevReadPressed;
+
+    // The window's Listen button -- A triggers the same thing, since a ray
+    // click isn't practical while the glass is in hand.
+    private ReadAloudButton readAloudButton;
 
     void Awake()
     {
         if (lensPoint == null) lensPoint = transform;
         if (playerCamera == null && Camera.main != null)
             playerCamera = Camera.main.transform;
+
+        if (infoCanvas != null)
+            readAloudButton = infoCanvas.GetComponentInChildren<ReadAloudButton>(true);
+
+        TextToSpeech.Prewarm();
     }
 
     void Update()
@@ -105,8 +121,13 @@ public class MagnifyingGlassTarget : MonoBehaviour
             ShowInfo();
 
         RefreshText();
-        PositionCanvas();
-        HandleAdvanceInput();
+
+        // Once the lens has lost contact the window stays exactly where it
+        // was for the grace period, rather than chasing a wandering animal
+        // around -- it's only readable if it holds still.
+        if (pendingHide == null) PositionCanvas();
+
+        HandleButtonInput();
     }
 
     void CheckProximity()
@@ -171,6 +192,13 @@ public class MagnifyingGlassTarget : MonoBehaviour
     IEnumerator DelayedClear()
     {
         yield return new WaitForSeconds(loseContactGrace);
+
+        // Never cut a read-aloud off mid-sentence -- if it's still going
+        // once the grace period is up, the window stays (still frozen in
+        // place) until it finishes or the player stops it with A.
+        while (readAloudButton != null && readAloudButton.IsReading)
+            yield return null;
+
         pendingHide = null;
         HideInfo();
         currentInfo = null;
@@ -259,8 +287,9 @@ public class MagnifyingGlassTarget : MonoBehaviour
         return facts[clamped];
     }
 
-    // Advances summary -> fact 1 -> fact 2 -> ... -> back to summary.
-    void HandleAdvanceInput()
+    // Right-hand A reads the window aloud (again to stop); right-hand B advances
+    // summary -> fact 1 -> fact 2 -> ... -> back to summary.
+    void HandleButtonInput()
     {
         if (!rightHandDevice.isValid)
         {
@@ -268,13 +297,27 @@ public class MagnifyingGlassTarget : MonoBehaviour
             return;
         }
 
-        if (rightHandDevice.TryGetFeatureValue(CommonUsages.primaryButton, out bool pressed))
+        if (rightHandDevice.TryGetFeatureValue(CommonUsages.primaryButton, out bool readPressed))
         {
-            bool justPressed = pressed && !prevAdvancePressed;
-            prevAdvancePressed = pressed;
+            bool justPressed = readPressed && !prevReadPressed;
+            prevReadPressed = readPressed;
+
+            if (justPressed) ReadAloud();
+        }
+
+        if (rightHandDevice.TryGetFeatureValue(CommonUsages.secondaryButton, out bool advancePressed))
+        {
+            bool justPressed = advancePressed && !prevAdvancePressed;
+            prevAdvancePressed = advancePressed;
 
             if (justPressed) Advance();
         }
+    }
+
+    void ReadAloud()
+    {
+        if (readAloudButton != null) readAloudButton.Toggle();
+        else TextToSpeech.Speak(CurrentDisplayName() + "\n" + CurrentBodyLine());
     }
 
     void Advance()
@@ -293,19 +336,74 @@ public class MagnifyingGlassTarget : MonoBehaviour
         if (infoCanvas == null) return;
 
         Transform target = CurrentTargetTransform();
-        if (target == null) return;
+        if (target == null || playerCamera == null) return;
 
-        infoCanvas.transform.position = target.position + promptOffset;
+        // Sits to the player's LEFT of the object, just past its edge -- the
+        // glass is held in the right hand, so a window on the right ended up
+        // behind the hand/glass and was hard to read.
+        Bounds bounds = TargetBounds(target);
 
-        if (playerCamera != null)
+        Vector3 forward = bounds.center - playerCamera.position;
+        forward.y = 0f;
+        if (forward.sqrMagnitude < 0.0001f) forward = playerCamera.forward;
+        forward.y = 0f;
+        forward.Normalize();
+        Vector3 right = Vector3.Cross(Vector3.up, forward);
+
+        // Half-width of the bounds along the player's right-hand direction.
+        float halfWidth = Mathf.Abs(bounds.extents.x * right.x) + Mathf.Abs(bounds.extents.z * right.z);
+
+        // Where the window's near (right-hand) edge should sit.
+        Vector3 nearEdge = bounds.center - right * (halfWidth + sideGap) - forward * towardPlayer;
+
+        // This canvas's readable front faces its local -Z, so aiming
+        // local +Z away from the player (dir already points away from
+        // them) puts the front toward the player.
+        Vector3 dir = nearEdge - playerCamera.position;
+        dir.y = 0f;
+        if (dir != Vector3.zero)
+            infoCanvas.transform.rotation = Quaternion.LookRotation(dir);
+
+        // The Panel is pivoted on its left edge and extends to the canvas's
+        // local +X (the player's right), so shift the canvas left by the
+        // panel's width to make its RIGHT edge land on nearEdge -- the whole
+        // window then sits clear of the object instead of overlapping it.
+        infoCanvas.transform.position = nearEdge - infoCanvas.transform.right * PanelWorldWidth();
+    }
+
+    float PanelWorldWidth()
+    {
+        RectTransform panel = titleText != null ? titleText.transform.parent as RectTransform : null;
+        if (panel == null) return 0f;
+        return panel.rect.width * panel.lossyScale.x;
+    }
+
+    // Colliders rather than renderers where possible -- they're what the
+    // lens actually detects, and some props carry oversized renderers (e.g.
+    // particle effects) that would push the window far off to the side.
+    static Bounds TargetBounds(Transform target)
+    {
+        target.GetComponentsInChildren(BoundsColliders);
+        bool found = false;
+        Bounds bounds = new Bounds(target.position, Vector3.zero);
+
+        foreach (Collider col in BoundsColliders)
         {
-            // This canvas's readable front faces its local -Z, so aiming
-            // local +Z away from the player (dir already points away from
-            // them) puts the front toward the player.
-            Vector3 dir = infoCanvas.transform.position - playerCamera.position;
-            dir.y = 0f;
-            if (dir != Vector3.zero)
-                infoCanvas.transform.rotation = Quaternion.LookRotation(dir);
+            if (!col.enabled || col.isTrigger) continue;
+            if (!found) { bounds = col.bounds; found = true; }
+            else bounds.Encapsulate(col.bounds);
         }
+
+        if (found) return bounds;
+
+        target.GetComponentsInChildren(BoundsRenderers);
+        foreach (Renderer r in BoundsRenderers)
+        {
+            if (!r.enabled) continue;
+            if (!found) { bounds = r.bounds; found = true; }
+            else bounds.Encapsulate(r.bounds);
+        }
+
+        return bounds;
     }
 }

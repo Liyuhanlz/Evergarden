@@ -73,8 +73,24 @@ public class ReturnToRackOnDrop : MonoBehaviour
 
         if (rb != null)
         {
+            // Move the Rigidbody too, not just the Transform -- with
+            // interpolation on, the next physics step otherwise snaps the
+            // tool right back to wherever its body was lying (seen with the
+            // Magnifying Glass: teleported to the socket, then immediately
+            // yanked back to the ground before the socket could claim it).
+            rb.position = target.position;
+            rb.rotation = target.rotation;
             rb.velocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
         }
+
+        // Hand it straight to the socket rather than waiting for the socket's
+        // trigger to notice it -- that was a race against gravity: on a slow
+        // frame the tool dropped back out of the trigger before the socket
+        // ever saw it, and was left lying under the rack. Same direct select
+        // XRI uses to seat Starting Selected Interactable at load.
+        var interactionManager = grabInteractable.interactionManager;
+        if (interactionManager != null && !grabInteractable.isSelected)
+            interactionManager.SelectEnter((IXRSelectInteractor)homeSocket, (IXRSelectInteractable)grabInteractable);
     }
 }

@@ -25,6 +25,6 @@ public class InfoData : ScriptableObject
     [Tooltip("Shown first, as soon as the Spyglass is pointed at this -- one or two sentences")]
     public string summary;
 
-    [Tooltip("Extra fun facts, paged through one at a time with the A button, in order. Keep each one short -- it reads like a dialogue line, not a paragraph.")]
+    [Tooltip("Extra fun facts, paged through one at a time with the B button, in order. Keep each one short -- it reads like a dialogue line, not a paragraph.")]
     public List<string> facts = new List<string>();
 }

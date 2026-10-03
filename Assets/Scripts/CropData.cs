@@ -55,7 +55,7 @@ public class CropData : ScriptableObject
     [Tooltip("Shown first when the Magnifying Glass is pointed at this crop's tile -- one or two sentences")]
     public string summary;
 
-    [Tooltip("Extra fun facts, paged through one at a time with the A button, in order")]
+    [Tooltip("Extra fun facts, paged through one at a time with the B button, in order")]
     public List<string> facts = new List<string>();
 
     // Helpers
