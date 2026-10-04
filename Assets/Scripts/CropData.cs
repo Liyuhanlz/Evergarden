@@ -46,6 +46,12 @@ public class CropData : ScriptableObject
     [Range(0f, 1f)]
     public float regrowthYieldMultiplier = 0.5f;
 
+    [Header("Pickable Fruit (crops with PickableFruit on their ready stage)")]
+    [Tooltip("How many fruit grow on a plant each round, picked at random in this range (inclusive) " +
+             "from the fruit spots on the ready-stage prefab -- e.g. a corn stalk grows 1-3 ears. " +
+             "0,0 = use every fruit spot.")]
+    public Vector2Int fruitCountRange = Vector2Int.zero;
+
     [Header("UI")]
     [Tooltip("Icon shown in the inventory slot -- drag a Sprite here")]
     public Sprite icon;

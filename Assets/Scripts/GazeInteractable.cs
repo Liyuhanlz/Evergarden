@@ -48,6 +48,11 @@ public class GazeInteractable : MonoBehaviour
     [Tooltip("World-space offset from this object's current position where the prompt floats. Tracked every frame -- keeps the prompt correctly placed even if this object moves (e.g. grabbed, or auto-socketed into a holder at scene start)")]
     public Vector3 promptOffset = new Vector3(0f, 0.4f, 0f);
 
+    [Tooltip("Optional -- if set, the prompt floats exactly at this transform instead of at Prompt " +
+             "Offset. Use a child of the object (e.g. an empty on top of a building) so the prompt " +
+             "follows it when the object is moved, rotated or rescaled")]
+    public Transform promptAnchor;
+
     [Tooltip("Keep the prompt facing the player. Recommended for anything that can be approached from more than one side (most grabbable props)")]
     public bool billboardPrompt = true;
 
@@ -185,7 +190,9 @@ public class GazeInteractable : MonoBehaviour
     // next to where it actually ended up.
     void PositionPrompt()
     {
-        promptCanvas.transform.position = transform.position + promptOffset;
+        promptCanvas.transform.position = promptAnchor != null
+            ? promptAnchor.position
+            : transform.position + promptOffset;
 
         if (billboardPrompt && playerCamera != null)
         {

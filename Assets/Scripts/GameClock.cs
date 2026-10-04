@@ -76,6 +76,21 @@ public class GameClock : MonoBehaviour
         }
     }
 
+    // Sleeping: jump straight to the next morning (dayStartHour) and run the
+    // normal new-day events, exactly as if the day had played out -- crops
+    // grow, hens plan their day, etc.
+    public void SkipToNextMorning()
+    {
+        timer = 0f;
+        TimeOfDay = 0f;
+        CurrentHour = dayStartHour;
+        CurrentMinute = 0;
+        CurrentDay++;
+        OnNewDay?.Invoke();
+        OnNewDayUnityEvent?.Invoke();
+        Debug.Log("[GameClock] Slept through to Day " + CurrentDay + ".");
+    }
+
     public string GetTimeString()
     {
         if (0 <= CurrentHour && CurrentHour < 12)

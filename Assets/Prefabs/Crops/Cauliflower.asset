@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Cauliflower
   m_EditorClassIdentifier: 
   cropName: Cauliflower
-  daysToMature: 1
+  daysToMature: 2
   growthStagePrefabs:
   - {fileID: 1446671395294747985, guid: 904273bf90d1423f89e167888f0a05ed, type: 3}
   - {fileID: 873878264662567329, guid: 0a5b6e3ba86b46f28ca2e09cbd2b83e8, type: 3}

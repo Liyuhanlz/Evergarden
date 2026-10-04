@@ -67,6 +67,10 @@ public class FarmManager : MonoBehaviour
     {
         if (tile == null) return null;
 
+        // Crops with pickable fruit (tomato, corn) are harvested one fruit at
+        // a time by grabbing -- see PickableFruit / FinishFruitHarvest
+        if (tile.HasPickableFruit) return null;
+
         CropData result = tile.Harvest();
 
         if (result != null)
@@ -88,5 +92,16 @@ public class FarmManager : MonoBehaviour
         }
 
         return result;
+    }
+
+    // Called by Farmland once the last pickable fruit is plucked. Each fruit
+    // already went into the inventory as it was picked, so this only runs the
+    // tile's harvest bookkeeping (soil, regrow or clear) -- no extra yield.
+    public void FinishFruitHarvest(Farmland tile)
+    {
+        if (tile == null) return;
+
+        if (tile.Harvest() != null)
+            readyTiles.Remove(tile);
     }
 }

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Broccoli
   m_EditorClassIdentifier: 
   cropName: Broccoli
-  daysToMature: 1
+  daysToMature: 2
   growthStagePrefabs:
   - {fileID: 4812172569430936913, guid: ebc2346969a649b1927318693ba9d2dc, type: 3}
   - {fileID: 5282706832732607825, guid: cf41776e8fcf4ee6a5a93c5e91e002bd, type: 3}

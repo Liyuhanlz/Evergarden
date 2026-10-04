@@ -49,6 +49,7 @@ public class Farmland : MonoBehaviour
     public Transform cropSpawnPoint;
     private GameObject spawnedCropModel;
     private int lastDisplayedStage = -1;
+    private int fruitRemaining = 0;
 
     // Set by Harvest() so FarmManager can scale the yield down for a
     // regrowth (side-shoot) harvest instead of a full first harvest.
@@ -188,10 +189,29 @@ public class Farmland : MonoBehaviour
             Destroy(spawnedCropModel);
             spawnedCropModel = null;
         }
+        fruitRemaining = 0;
 
         SetState(TileState.Tilled);
         Debug.Log("[Farmland] Harvested " + harvested.cropName + "!");
         return harvested;
+    }
+
+    // True when the currently shown stage has individually pickable fruit
+    // on it -- those crops are harvested by grabbing fruit, not by pressing A
+    public bool HasPickableFruit => fruitRemaining > 0;
+
+    // Called by PickableFruit when the player plucks one fruit off the stem
+    public void PickFruit(PickableFruit fruit)
+    {
+        if (cropData == null || fruitRemaining <= 0) return;
+
+        fruitRemaining--;
+        if (InventoryManager.Instance != null)
+            InventoryManager.Instance.AddCrop(cropData, 1);
+
+        // Last fruit gone -- run the normal harvest (regrow or clear the plot)
+        if (fruitRemaining == 0 && FarmManager.Instance != null)
+            FarmManager.Instance.FinishFruitHarvest(this);
     }
 
     // Swap the visible crop model to match current growth stage
@@ -200,14 +220,66 @@ public class Farmland : MonoBehaviour
         if (cropData == null) return;
 
         int stage = cropData.GetStageForDay(daysWatered);
-        if (stage == lastDisplayedStage) return;
-        lastDisplayedStage = stage;
+        bool ready = cropData.IsReadyToHarvest(daysWatered);
+
+        // A regrowing fruiting plant (tomato) keeps its full-size body instead
+        // of shrinking back to a sapling -- only the fruit grows back, hidden
+        // until ripe. Crops without pickable fruit (broccoli) regrow through
+        // their normal stages, since their last stage IS the harvestable part.
+        if (timesHarvested > 0 && LastStageHasFruit())
+            stage = cropData.StageCount - 1;
+
+        int displayKey = stage * 2 + (ready ? 1 : 0);
+        if (displayKey == lastDisplayedStage) return;
+        lastDisplayedStage = displayKey;
 
         if (spawnedCropModel != null) Destroy(spawnedCropModel);
+        fruitRemaining = 0;
 
         GameObject prefab = cropData.GetPrefabForStage(stage);
         if (prefab != null)
+        {
             spawnedCropModel = Instantiate(prefab, cropSpawnPoint.position, Quaternion.identity, cropSpawnPoint);
+            SetUpFruit(ready);
+        }
+    }
+
+    bool LastStageHasFruit()
+    {
+        GameObject last = cropData.GetPrefabForStage(cropData.StageCount - 1);
+        return last != null && last.GetComponentInChildren<PickableFruit>(true) != null;
+    }
+
+    // Hooks up the pickable fruit on a freshly spawned stage. Regrowth
+    // rounds show fewer fruit (Regrowth Yield Multiplier), like a plant's
+    // later, smaller flushes.
+    void SetUpFruit(bool ready)
+    {
+        PickableFruit[] fruit = spawnedCropModel.GetComponentsInChildren<PickableFruit>();
+        if (fruit.Length == 0) return;
+
+        int count = fruit.Length;
+        Vector2Int range = cropData.fruitCountRange;
+        if (range.y > 0)
+            count = Mathf.Clamp(Random.Range(range.x, range.y + 1), 1, fruit.Length);
+        if (timesHarvested > 0)
+            count = Mathf.Clamp(Mathf.RoundToInt(count * cropData.regrowthYieldMultiplier), 1, count);
+        if (!ready) count = 0;
+
+        // Shuffle so a smaller flush isn't always the same fruit positions
+        for (int i = fruit.Length - 1; i > 0; i--)
+        {
+            int j = Random.Range(0, i + 1);
+            (fruit[i], fruit[j]) = (fruit[j], fruit[i]);
+        }
+
+        for (int i = 0; i < fruit.Length; i++)
+        {
+            if (i < count) fruit[i].owner = this;
+            else Destroy(fruit[i].gameObject);
+        }
+
+        fruitRemaining = count;
     }
 
     // Hoe -> Tilled

@@ -13,17 +13,19 @@ MonoBehaviour:
   m_Name: Corn
   m_EditorClassIdentifier: 
   cropName: Corn
-  daysToMature: 1
+  daysToMature: 3
   growthStagePrefabs:
-  - {fileID: 8809861818167712081, guid: 8ac235ce80ed4f26b02bf61725514ea3, type: 3}
-  - {fileID: 2324875626433909585, guid: 7701763c67bc4b6886033ab5f2f07ae1, type: 3}
-  - {fileID: 7033879699708888401, guid: 9fa97385dd7f4114b19185fb7010115c, type: 3}
-  harvestYield: 4
+  - {fileID: 8376124139883245671, guid: 345bb2b61076edb419af2fa6ab9d6888, type: 3}
+  - {fileID: 3746438739232010828, guid: 2044ca9848831d34d8eaec44d3a3ba09, type: 3}
+  - {fileID: 6008899792696699954, guid: 29e7b3c674904bb4f87ebd2ff8809f84, type: 3}
+  - {fileID: 3192692620548478970, guid: 5097ef8ba2d4bfb4a8544c5e86627819, type: 3}
+  harvestYield: 2
   sellPrice: 8
   isMultiHarvest: 0
   regrowDays: 2
   maxHarvests: 1
   regrowthYieldMultiplier: 0.5
+  fruitCountRange: {x: 1, y: 3}
   icon: {fileID: 21300000, guid: e8075d59f453aa24d82a460a981f1642, type: 3}
   summary: A tall grain crop grown for its kernels, which ripen inside a protective
     husk.
