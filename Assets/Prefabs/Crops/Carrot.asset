@@ -23,10 +23,17 @@ MonoBehaviour:
   regrowDays: 2
   maxHarvests: 1
   regrowthYieldMultiplier: 0.5
-  icon: {fileID: 21300000, guid: 972ad0977ab01cb4a8d5b7c5cd1539e1, type: 3}
-  summary: A root vegetable that grows underground, ready to pull once the leafy
-    top matures.
+  fruitCountRange: {x: 0, y: 0}
+  icon: {fileID: 21300000, guid: e23859782177f2f41a6068e280be61c6, type: 3}
+  summary: Carrots are roots that grow underground! The part we eat is called a taproot.
   facts:
-  - Carrots were originally purple -- the familiar orange variety was bred in the
-    Netherlands.
-  - The green tops are edible too and taste a bit like parsley.
+  - Carrots aren't only orange. They can be white, yellow or purple too!
+  - People probably started farming carrots in Central Asia about 1,000 years ago!
+  - Carrots are full of carotene, which your body turns into vitamin A!
+  - 'Wild carrots have a fancy name: Queen Anne''s lace!'
+  sources:
+  - Encyclopaedia Britannica. Carrot. https://www.britannica.com/plant/carrot
+  - University of Minnesota Extension. Crop and field planning tools for vegetable
+    farmers. https://extension.umn.edu/agriculture/specialty-crops/vegetable-farming/crop-and-field-planning-tools-for-vegetable-farmers
+  realGrowTime: about 55 to 75 days after planting the seeds
+  realHarvestPattern: 

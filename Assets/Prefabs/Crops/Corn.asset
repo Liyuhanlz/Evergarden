@@ -27,8 +27,16 @@ MonoBehaviour:
   regrowthYieldMultiplier: 0.5
   fruitCountRange: {x: 1, y: 3}
   icon: {fileID: 21300000, guid: e8075d59f453aa24d82a460a981f1642, type: 3}
-  summary: A tall grain crop grown for its kernels, which ripen inside a protective
-    husk.
+  summary: Corn is actually a giant grass! Each ear is wrapped up in leafy husks.
   facts:
-  - Each corn kernel is a separate seed, and one ear can have 800 of them.
-  - Corn silk -- the golden threads at the top -- carries pollen to each kernel.
+  - People in southern Mexico first grew corn about 10,000 years ago!
+  - Each strand of corn silk leads to just one kernel!
+  - Corn kernels can be red, blue, pink or even black!
+  - Popcorn pops because heat makes the water inside each kernel expand until it
+    bursts!
+  sources:
+  - Encyclopaedia Britannica. Corn. https://www.britannica.com/plant/corn-plant
+  - University of Minnesota Extension. Crop and field planning tools for vegetable
+    farmers. https://extension.umn.edu/agriculture/specialty-crops/vegetable-farming/crop-and-field-planning-tools-for-vegetable-farmers
+  realGrowTime: about 70 to 85 days after planting the seeds
+  realHarvestPattern: 

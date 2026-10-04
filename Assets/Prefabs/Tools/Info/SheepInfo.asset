@@ -14,9 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Sheep
   category: 1
-  summary: A wool-bearing farm animal that grazes on grass and stays close to the
-    herd.
+  summary: Sheep give us meat, milk and wool! They stick together in flocks and usually
+    follow a leader.
   facts:
-  - A sheep's wool never stops growing -- it needs to be sheared every year.
-  - Sheep have rectangular pupils, giving them a wide field of view to watch for
-    predators.
+  - Every spring, wool sheep get a haircut! Farmers shear off their fleece to make
+    wool.
+  - Baby sheep are called lambs. They can follow their moms just a day or two after
+    they're born!
+  - How do you tell sheep and goats apart? Sheep never have beards, but goats often
+    do!
+  sources:
+  - Britannica for Students (Britannica Kids). Sheep. https://kids.britannica.com/students/article/sheep/277023

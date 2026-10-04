@@ -12,7 +12,8 @@ using Debug = UnityEngine.Debug;
 // Tools -> Evergarden -> Bake Read Aloud Audio
 //
 // Pre-records every line the magnifying-glass window can show (title + the
-// summary, and title + each fact, for every InfoData and CropData asset)
+// summary, title + each fact, and for crops title + the Farm and Game tabs,
+// for every InfoData and CropData asset)
 // with Windows' built-in voice, saves them as audio clips under
 // Assets/Sound/ReadAloud, and lists them in Assets/Resources/
 // ReadAloudLibrary.asset along with each word's timing. The headset build
@@ -88,10 +89,96 @@ public class ReadAloudBaker : IPreprocessBuildWithReport
         foreach (string guid in AssetDatabase.FindAssets("t:CropData"))
         {
             CropData d = AssetDatabase.LoadAssetAtPath<CropData>(AssetDatabase.GUIDToAssetPath(guid));
-            if (d != null) Add(d.cropName, d.summary, d.facts);
+            if (d == null) continue;
+            Add(d.cropName, d.summary, d.facts);
+
+            // The window's Farm and Game tabs -- fixed per crop, so they can
+            // be pre-recorded too. (The live Growth tab changes as the crop
+            // grows, so it isn't.)
+            string baseName = "read_" + Slug(d.cropName);
+            string realFarm = d.RealFarmPage();
+            if (realFarm.Length > 0) AddLine(TextToSpeech.Compose(new[] { d.cropName, realFarm }), baseName + "_realfarm");
+            string game = d.GamePage();
+            if (game.Length > 0) AddLine(TextToSpeech.Compose(new[] { d.cropName, game }), baseName + "_game");
         }
 
+        npcScanComplete = CollectNpcLines(AddLine);
+
         return lines;
+    }
+
+    // False if some build scene couldn't be opened to read its NPCs -- the
+    // bake then keeps every existing clip rather than deleting NPC lines it
+    // simply didn't get to see this time.
+    static bool npcScanComplete = true;
+
+    // NPC dialogue (DialogueManager speaks every line): each string[] field on
+    // every NPCBase in the build's scenes -- MerchantNPC.tutorialLines,
+    // VillagerNPC greetings, QuestNPC lines -- one clip per line, named
+    // read_<npc>_<field><n>, e.g. read_merchant_tutorial1. Spoken as-is, so
+    // the text is the raw line (no title prefix like the info window has).
+    static bool CollectNpcLines(Action<string, string> addLine)
+    {
+        bool complete = true;
+
+        foreach (EditorBuildSettingsScene buildScene in EditorBuildSettings.scenes)
+        {
+            if (!buildScene.enabled) continue;
+
+            UnityEngine.SceneManagement.Scene scene = UnityEngine.SceneManagement.SceneManager.GetSceneByPath(buildScene.path);
+            bool openedHere = false;
+
+            if (!scene.isLoaded)
+            {
+                try
+                {
+                    scene = UnityEditor.SceneManagement.EditorSceneManager.OpenScene(buildScene.path, UnityEditor.SceneManagement.OpenSceneMode.Additive);
+                    openedHere = true;
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("Read Aloud: couldn't open " + buildScene.path + " to read its NPC dialogue -- " + e.Message);
+                    complete = false;
+                    continue;
+                }
+            }
+
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                foreach (NPCBase npc in root.GetComponentsInChildren<NPCBase>(true))
+                {
+                    foreach (var field in npc.GetType().GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+                    {
+                        if (field.FieldType != typeof(string[])) continue;
+
+                        string[] dialogue = (string[])field.GetValue(npc);
+                        if (dialogue == null) continue;
+
+                        string baseName = "read_" + Slug(npc.name) + "_" + FieldSlug(field.Name);
+                        for (int i = 0; i < dialogue.Length; i++)
+                            if (!string.IsNullOrWhiteSpace(dialogue[i]))
+                                addLine(dialogue[i], baseName + (i + 1));
+                    }
+                }
+            }
+
+            if (openedHere) UnityEditor.SceneManagement.EditorSceneManager.CloseScene(scene, true);
+        }
+
+        return complete;
+    }
+
+    // "tutorialLines" -> "tutorial", "lowFriendshipGreetings" -> "low_friendship_greetings"
+    static string FieldSlug(string fieldName)
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (char c in fieldName)
+        {
+            if (char.IsUpper(c) && sb.Length > 0) sb.Append('_');
+            sb.Append(char.ToLowerInvariant(c));
+        }
+        string slug = sb.ToString();
+        return slug.EndsWith("_lines") ? slug.Substring(0, slug.Length - "_lines".Length) : slug;
     }
 
     // "Watering Can" -> "watering_can"
@@ -120,6 +207,13 @@ public class ReadAloudBaker : IPreprocessBuildWithReport
             library = ScriptableObject.CreateInstance<ReadAloudLibrary>();
             AssetDatabase.CreateAsset(library, LibraryPath);
         }
+
+        // Some scene's NPCs couldn't be read -- keep what's already recorded
+        // instead of treating those lines as deleted.
+        if (!npcScanComplete)
+            foreach (ReadAloudLibrary.Line line in library.lines)
+                if (line != null && line.clip != null && !string.IsNullOrEmpty(line.text) && !wanted.ContainsKey(line.text))
+                    wanted[line.text] = line.clip.name;
 
         // Keep anything already recorded whose text is still in use and
         // whose clip is still there.
@@ -244,13 +338,27 @@ public class ReadAloudBaker : IPreprocessBuildWithReport
                 host.Start();
                 host.BeginErrorReadLine();
 
+                // Send the lines from a background thread while this one reads
+                // the replies. Writing them all first deadlocked on big bakes:
+                // the host's per-word replies filled the output pipe, so it
+                // stopped reading input while we were still blocked writing it.
+                var requests = new List<string>(texts.Count);
                 for (int i = 0; i < texts.Count; i++)
                 {
                     string full = Path.Combine(projectRoot, paths[i]).Replace('/', '\\');
                     string text = texts[i].Replace('\t', ' ').Replace('\n', ' ').Replace('\r', ' ');
-                    host.StandardInput.WriteLine(i + "\t" + full + "\t" + text);
+                    requests.Add(i + "\t" + full + "\t" + text);
                 }
-                host.StandardInput.Close();
+                var writer = new System.Threading.Thread(() =>
+                {
+                    try
+                    {
+                        foreach (string request in requests) host.StandardInput.WriteLine(request);
+                        host.StandardInput.Close();
+                    }
+                    catch (IOException) { } // host died -- the read loop below ends and reports what's missing
+                });
+                writer.Start();
 
                 string line;
                 while ((line = host.StandardOutput.ReadLine()) != null)
@@ -268,6 +376,7 @@ public class ReadAloudBaker : IPreprocessBuildWithReport
                     else if (parts[0] == "E") Debug.LogWarning("Read Aloud: couldn't record \"" + texts[id] + "\" -- " + (parts.Length > 2 ? parts[2] : "unknown error"));
                 }
 
+                writer.Join(10000);
                 host.WaitForExit(10000);
             }
 

@@ -24,8 +24,18 @@ MonoBehaviour:
   regrowDays: 2
   maxHarvests: 1
   regrowthYieldMultiplier: 0.5
+  fruitCountRange: {x: 0, y: 0}
   icon: {fileID: 21300000, guid: 144c5ebbf3d5b0a419e44ae8e6ee8267, type: 3}
-  summary: A cool-weather crop related to broccoli, grown for its dense white head.
+  summary: Cauliflower is a kind of cabbage! Its white head, called the curd, is
+    made of flowers that haven't opened yet.
   facts:
-  - The white head is called a 'curd', made of undeveloped flower buds.
-  - Cauliflower comes in purple and orange varieties too, not just white.
+  - Cauliflower isn't only white. It can be orange, purple, green or brown too!
+  - "Cauliflower likes cool weather, around 60\xB0F, to grow its head."
+  - If cauliflower gets too dry, it only grows small heads.
+  sources:
+  - Encyclopaedia Britannica. Cauliflower. https://www.britannica.com/plant/cauliflower
+  - University of Minnesota Extension. Crop and field planning tools for vegetable
+    farmers. https://extension.umn.edu/agriculture/specialty-crops/vegetable-farming/crop-and-field-planning-tools-for-vegetable-farmers
+  realGrowTime: about 75 to 80 days after planting outside
+  realHarvestPattern: Before harvest, farmers tie the big leaves over the head to
+    shade it!

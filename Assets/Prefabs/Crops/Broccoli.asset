@@ -24,10 +24,16 @@ MonoBehaviour:
   regrowDays: 1
   maxHarvests: 3
   regrowthYieldMultiplier: 0.5
+  fruitCountRange: {x: 0, y: 0}
   icon: {fileID: 21300000, guid: c97c8fa8e477b34409dec6a13502ca4b, type: 3}
-  summary: A hardy vegetable grown for its tightly-packed flower buds, and it keeps
-    producing after the first cut.
+  summary: Broccoli is a kind of cabbage! We eat its flower buds and stalk.
   facts:
-  - Broccoli is actually a cluster of unopened flower buds.
-  - It's a close relative of cabbage, kale, and cauliflower -- all bred from the
-    same wild plant.
+  - Ancient Romans grew broccoli in Italy!
+  - Broccoli plants grow about 2 to 3 feet tall.
+  - Broccoli is packed with vitamins A, C and K!
+  sources:
+  - Encyclopaedia Britannica. Broccoli. https://www.britannica.com/plant/broccoli
+  - University of Minnesota Extension. Crop and field planning tools for vegetable
+    farmers. https://extension.umn.edu/agriculture/specialty-crops/vegetable-farming/crop-and-field-planning-tools-for-vegetable-farmers
+  realGrowTime: about 55 to 65 days after planting outside
+  realHarvestPattern: If it isn't picked, its buds open into little yellow flowers!

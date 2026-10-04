@@ -14,8 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Goat
   category: 1
-  summary: A sure-footed farm animal known for climbing and its curious, adventurous
-    nature.
+  summary: Goats are amazing climbers with hollow horns! They first came from the
+    mountains of Europe, Asia and northern Africa.
   facts:
-  - Goats' rectangular pupils let them see nearly 320 degrees around them.
-  - They're excellent climbers and were domesticated over 9,000 years ago.
+  - Goats are smart and social, and they like to live together in herds.
+  - Do goats eat tin cans? Nope! That's just a myth.
+  - Baby goats are called kids! A mom usually has one to three, and they can follow
+    her just a few hours after they're born.
+  - Goats can live to be about 15 years old.
+  sources:
+  - Britannica for Students (Britannica Kids). Goat. https://kids.britannica.com/students/article/goat/274580

@@ -14,8 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Chicken
   category: 1
-  summary: A small farm bird raised for eggs, most active scratching around during
-    the day.
+  summary: Chickens are farm birds raised for eggs and meat. They come from the wild
+    red jungle fowl of India!
   facts:
-  - Chickens can remember over 100 different faces, human or animal.
-  - A hen doesn't need a rooster around to lay eggs -- just to lay fertilized ones.
+  - There are more than 60 breeds of chickens!
+  - Chickens have a pecking order, a ranking that decides who gets to eat first!
+  - Fluffy chicks grow all their feathers in just 4 to 5 weeks!
+  - Free-range chickens can live 6 to 8 years.
+  sources:
+  - Encyclopaedia Britannica. Chicken. https://www.britannica.com/animal/chicken

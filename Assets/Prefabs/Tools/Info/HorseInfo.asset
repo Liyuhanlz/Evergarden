@@ -14,8 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Horse
   category: 1
-  summary: A large grazing animal, fast and strong, historically used for farm work
-    and travel.
+  summary: Horses are strong, plant-eating animals with hooves. For hundreds of years
+    they've helped people plow fields, carry things and travel!
   facts:
-  - Horses can sleep both lying down and standing up.
-  - A horse's teeth take up more space in its skull than its brain does.
+  - Horses only sleep about 2 to 3 hours a day, and they often nap standing up!
+  - Horses have the biggest eyes of any animal that lives on land!
+  - A horse's height is measured in "hands." One hand equals 4 inches!
+  sources:
+  - Britannica for Students (Britannica Kids). Horse. https://kids.britannica.com/students/article/horse/274947

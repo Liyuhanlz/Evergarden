@@ -27,13 +27,17 @@ MonoBehaviour:
   regrowthYieldMultiplier: 0.8
   fruitCountRange: {x: 0, y: 0}
   icon: {fileID: 21300000, guid: f1d0e334fffd26a4198d074ad071c680, type: 3}
-  summary: A vining fruit (yes, botanically a fruit!) that keeps flowering and ripening
-    new tomatoes for weeks after the first pick.
+  summary: Surprise! A tomato is really a fruit, a juicy berry full of tiny seeds.
   facts:
-  - Tomatoes start green and turn red as they ripen, when the plant breaks down chlorophyll
-    and builds up a red pigment called lycopene.
-  - One healthy tomato plant can keep producing fruit for two to three months if
-    you keep picking the ripe ones.
-  - Picking ripe tomatoes regularly encourages the plant to set more fruit.
-  - Tomatoes are related to potatoes and peppers -- they're all in the nightshade
-    family.
+  - Wild tomatoes first grew in the Andes Mountains of South America!
+  - The word tomato comes from tomatl, a word in the Aztec language.
+  - Tomatoes aren't only red. They can be yellow, green or even purple!
+  - Tomatoes are cousins of eggplants! Their leaves are poisonous, so only eat the
+    fruit.
+  sources:
+  - Encyclopaedia Britannica. Tomato. https://www.britannica.com/plant/tomato
+  - University of Minnesota Extension. Crop and field planning tools for vegetable
+    farmers. https://extension.umn.edu/agriculture/specialty-crops/vegetable-farming/crop-and-field-planning-tools-for-vegetable-farmers
+  realGrowTime: about 65 to 85 days after planting outside (50 to 70 for cherry tomatoes)
+  realHarvestPattern: Farmers stake or cage the plants to keep the fruit off the
+    ground!

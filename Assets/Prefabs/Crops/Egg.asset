@@ -21,12 +21,15 @@ MonoBehaviour:
   regrowDays: 2
   maxHarvests: 1
   regrowthYieldMultiplier: 0.5
+  fruitCountRange: {x: 0, y: 0}
   icon: {fileID: 21300000, guid: fa580d96e20c5eb478cc38cd5723dba1, type: 3}
-  summary: Fresh eggs from your hens. A healthy hen lays at most one egg a day, usually
-    in the morning.
+  summary: Fresh eggs from your hens! A hen makes one egg about every 23 to 26 hours.
   facts:
-  - It takes a hen about 24 to 26 hours to make one egg, so she can never lay more
-    than one a day.
-  - Shell color depends on the breed -- Leghorns lay white eggs, Rhode Island Reds
-    lay brown ones.
-  - Hens lay best in their first two years, then a little less each year after that.
+  - Some hens can lay as many as 300 eggs a year!
+  - Long, sunny days help hens lay more eggs.
+  - Hens start laying eggs when they're about six months old.
+  - If an egg is fertilized, a fluffy chick hatches about 21 days later!
+  sources:
+  - Encyclopaedia Britannica. Chicken. https://www.britannica.com/animal/chicken
+  realGrowTime: 
+  realHarvestPattern: 
