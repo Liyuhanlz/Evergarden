@@ -64,6 +64,10 @@ public class MagnifyingGlassTarget : MonoBehaviour
     [Tooltip("How far in meters the window is pulled from the object toward the player, so it reads as floating in front rather than level with it")]
     public float towardPlayer = 0.1f;
 
+    [Tooltip("The window's bottom edge never goes lower than this many meters above the ground beneath it -- " +
+             "low targets like crops (whose tiles sit partly below ground) would otherwise put half the window underground")]
+    public float minHeightAboveGround = 0.5f;
+
     [Tooltip("How long the info panel stays up after losing proximity before actually hiding -- long enough to read it or press Listen after the animal wanders off, and also bridges brief separations without flicker. If a read-aloud is still playing when this runs out, it stays up until that finishes")]
     public float loseContactGrace = 5f;
 
@@ -369,6 +373,41 @@ public class MagnifyingGlassTarget : MonoBehaviour
         // panel's width to make its RIGHT edge land on nearEdge -- the whole
         // window then sits clear of the object instead of overlapping it.
         infoCanvas.transform.position = nearEdge - infoCanvas.transform.right * PanelWorldWidth();
+
+        KeepAboveGround();
+    }
+
+    static readonly Vector3[] PanelCorners = new Vector3[4];
+
+    void KeepAboveGround()
+    {
+        RectTransform panel = titleText != null ? titleText.transform.parent as RectTransform : null;
+        if (panel == null) return;
+
+        panel.GetWorldCorners(PanelCorners);
+        float bottom = Mathf.Min(PanelCorners[0].y, PanelCorners[3].y);
+
+        if (!TryGetGroundHeight(infoCanvas.transform.position, out float groundY)) return;
+
+        float lift = groundY + minHeightAboveGround - bottom;
+        if (lift > 0f)
+            infoCanvas.transform.position += Vector3.up * lift;
+    }
+
+    static readonly RaycastHit[] GroundHits = new RaycastHit[16];
+
+    // Lowest surface straight below -- the lowest rather than the first hit,
+    // so a tree canopy or fence rail overhead doesn't count as "ground".
+    static bool TryGetGroundHeight(Vector3 around, out float groundY)
+    {
+        groundY = 0f;
+        int count = Physics.RaycastNonAlloc(around + Vector3.up * 5f, Vector3.down, GroundHits, 20f, ~0, QueryTriggerInteraction.Ignore);
+        if (count == 0) return false;
+
+        groundY = float.MaxValue;
+        for (int i = 0; i < count; i++)
+            groundY = Mathf.Min(groundY, GroundHits[i].point.y);
+        return true;
     }
 
     float PanelWorldWidth()

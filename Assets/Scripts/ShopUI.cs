@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.XR;
 using TMPro;
 
 // World Space shop panel, opened/closed by ShopInteractionController. Two
@@ -37,6 +38,17 @@ public class ShopUI : MonoBehaviour
     [Header("Tradeable Crops")]
     [Tooltip("Every crop the shop trades -- same list drives both the Buy and Sell tab")]
     public List<CropData> tradeableCrops = new List<CropData>();
+
+    [Tooltip("Produce the shop buys but doesn't sell back (e.g. eggs) -- shown on the Sell tab only")]
+    public List<CropData> sellOnlyItems = new List<CropData>();
+
+    // Sell tab lists everything the shop will buy from the player.
+    List<CropData> SellableItems()
+    {
+        List<CropData> items = new List<CropData>(tradeableCrops);
+        items.AddRange(sellOnlyItems);
+        return items;
+    }
 
     [Header("Tabs")]
     public Button buyTabButton;
@@ -80,6 +92,27 @@ public class ShopUI : MonoBehaviour
     public TMP_Text sellRemainingText;
     public Button sellConfirmButton;
 
+    [Header("Tab Layout (list beside detail)")]
+    [Tooltip("Everything belonging to the Buy tab -- its scrollable item list on one side and its " +
+             "detail area on the other. Shown only while the Buy tab is selected")]
+    public GameObject buyTabContent;
+    public GameObject sellTabContent;
+
+    [Tooltip("\"Select an item\" placeholder shown in the Buy detail area until a row is picked")]
+    public GameObject buyDetailHint;
+    public GameObject sellDetailHint;
+
+    [Header("Thumbstick Scrolling")]
+    [Tooltip("Scroll view around each tab's item list -- the right thumbstick scrolls whichever one is showing")]
+    public ScrollRect buyListScroll;
+    public ScrollRect sellListScroll;
+
+    [Tooltip("List scroll speed at full stick deflection, in the canvas's UI units per second (a row is ~16)")]
+    public float thumbstickScrollSpeed = 80f;
+
+    [Tooltip("Stick deflection below this is ignored, so a resting thumb doesn't drift the list")]
+    public float thumbstickDeadzone = 0.2f;
+
     [Header("Wallet Display (header)")]
     [Tooltip("Optional -- shows the running gold balance at the top of the shop, regardless of tab")]
     public TMP_Text goldText;
@@ -114,6 +147,7 @@ public class ShopUI : MonoBehaviour
     // whole class of problem, the same way it already does for those panels.
     private Vector3 openPosition;
     private Quaternion openRotation;
+    private bool isOpen;
     private static readonly Vector3 HiddenOffset = new Vector3(0f, -500f, 0f);
 
     void Awake()
@@ -136,8 +170,7 @@ public class ShopUI : MonoBehaviour
         if (sellQtyPlusButton != null) sellQtyPlusButton.onClick.AddListener(() => ChangeSellQty(1));
         if (sellConfirmButton != null) sellConfirmButton.onClick.AddListener(ConfirmSell);
 
-        if (buyDetailPanel != null) buyDetailPanel.SetActive(false);
-        if (sellDetailPanel != null) sellDetailPanel.SetActive(false);
+        RefreshDetailVisibility();
 
         if (buyCostText != null) buyCostText.color = CostColor;
         if (sellEarningsText != null) sellEarningsText.color = EarningsColor;
@@ -190,10 +223,11 @@ public class ShopUI : MonoBehaviour
         currentTab = tab;
         UpdateTabHighlight(tab);
 
+        if (buyTabContent != null) buyTabContent.SetActive(tab == ShopTab.Buy);
+        if (sellTabContent != null) sellTabContent.SetActive(tab == ShopTab.Sell);
         if (buyRowContainer != null) SetContainerActive(buyRowContainer, tab == ShopTab.Buy);
         if (sellRowContainer != null) SetContainerActive(sellRowContainer, tab == ShopTab.Sell);
-        if (buyDetailPanel != null) buyDetailPanel.SetActive(tab == ShopTab.Buy && selectedBuyCrop != null);
-        if (sellDetailPanel != null) sellDetailPanel.SetActive(tab == ShopTab.Sell && selectedSellCrop != null);
+        RefreshDetailVisibility();
 
         if (tab == ShopTab.Buy) RefreshBuyTab();
         else RefreshSellTab();
@@ -202,6 +236,46 @@ public class ShopUI : MonoBehaviour
         // can otherwise sit a frame behind the UI raycaster's own canvas scan,
         // making them briefly un-clickable the moment the shop first opens.
         Canvas.ForceUpdateCanvases();
+    }
+
+    void Update()
+    {
+        if (isOpen) ScrollListWithThumbstick();
+    }
+
+    // Right stick up/down scrolls the current tab's list. Locomotion and turn
+    // are disabled while shopping (ShopInteractionController), so the stick
+    // is free for this.
+    void ScrollListWithThumbstick()
+    {
+        ScrollRect list = currentTab == ShopTab.Buy ? buyListScroll : sellListScroll;
+        if (list == null || list.content == null || list.viewport == null) return;
+
+        InputDevices.GetDeviceAtXRNode(XRNode.RightHand)
+            .TryGetFeatureValue(CommonUsages.primary2DAxis, out Vector2 axis);
+        if (Mathf.Abs(axis.y) < thumbstickDeadzone) return;
+
+        // verticalNormalizedPosition is 0..1 across however much the list
+        // overflows, so convert the speed into that range -- a long list then
+        // scrolls at the same rows-per-second as a short one.
+        float overflow = list.content.rect.height - list.viewport.rect.height;
+        if (overflow <= 0f) return;
+
+        list.verticalNormalizedPosition = Mathf.Clamp01(
+            list.verticalNormalizedPosition + axis.y * thumbstickScrollSpeed * Time.unscaledDeltaTime / overflow);
+    }
+
+    // Each tab's detail area shows either the quantity/confirm controls for
+    // the selected row, or a "Select an item" hint when nothing is picked yet.
+    void RefreshDetailVisibility()
+    {
+        bool buyTab = currentTab == ShopTab.Buy;
+        bool sellTab = currentTab == ShopTab.Sell;
+
+        if (buyDetailPanel != null) buyDetailPanel.SetActive(buyTab && selectedBuyCrop != null);
+        if (sellDetailPanel != null) sellDetailPanel.SetActive(sellTab && selectedSellCrop != null);
+        if (buyDetailHint != null) buyDetailHint.SetActive(buyTab && selectedBuyCrop == null);
+        if (sellDetailHint != null) sellDetailHint.SetActive(sellTab && selectedSellCrop == null);
     }
 
     static void SetContainerActive(Transform container, bool active)
@@ -251,7 +325,7 @@ public class ShopUI : MonoBehaviour
         selectedBuyCrop = crop;
         buyQty = 1;
 
-        if (buyDetailPanel != null) buyDetailPanel.SetActive(true);
+        RefreshDetailVisibility();
 
         RefreshBuyDetail();
     }
@@ -309,15 +383,17 @@ public class ShopUI : MonoBehaviour
         // just get skipped until the player switches to it.
         if (currentTab != ShopTab.Sell) return;
 
-        while (sellRows.Count < tradeableCrops.Count)
+        List<CropData> sellable = SellableItems();
+
+        while (sellRows.Count < sellable.Count)
             sellRows.Add(Instantiate(sellRowPrefab, sellRowContainer));
 
         for (int i = 0; i < sellRows.Count; i++)
-            sellRows[i].SetActive(i < tradeableCrops.Count);
+            sellRows[i].SetActive(i < sellable.Count);
 
-        for (int i = 0; i < tradeableCrops.Count; i++)
+        for (int i = 0; i < sellable.Count; i++)
         {
-            CropData crop = tradeableCrops[i];
+            CropData crop = sellable[i];
             GameObject row = sellRows[i];
             if (crop == null) { row.SetActive(false); continue; }
 
@@ -347,7 +423,7 @@ public class ShopUI : MonoBehaviour
         selectedSellCrop = crop;
         sellQty = 1;
 
-        if (sellDetailPanel != null) sellDetailPanel.SetActive(true);
+        RefreshDetailVisibility();
 
         RefreshSellDetail();
     }
@@ -409,6 +485,7 @@ public class ShopUI : MonoBehaviour
     {
         if (shopCanvas != null)
             shopCanvas.transform.SetPositionAndRotation(openPosition, openRotation);
+        isOpen = true;
 
         // Any other menu (backpack, pause) open at the same time would fight
         // over GameClock.IsPaused below -- Close() unconditionally clears it,
@@ -431,6 +508,7 @@ public class ShopUI : MonoBehaviour
     {
         if (shopCanvas != null)
             shopCanvas.transform.position = openPosition + HiddenOffset;
+        isOpen = false;
 
         if (GameClock.Instance != null)
             GameClock.Instance.IsPaused = false;

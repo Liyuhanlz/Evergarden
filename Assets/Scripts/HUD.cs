@@ -104,16 +104,22 @@ public class HUD : MonoBehaviour
     // Called by FarmManager when a crop is ready
     public void ShowHarvestAlert(string cropName)
     {
+        ShowAlert(cropName + " is ready to harvest! Press A to pick up.");
+    }
+
+    // Same alert panel, any message (e.g. ChickenCoop's "Collected 3 eggs!")
+    public void ShowAlert(string message)
+    {
         if (harvestAlertPanel != null)
             harvestAlertPanel.SetActive(true);
 
         if (harvestAlertText != null)
-            harvestAlertText.text = cropName + " is ready to harvest! Press A to pick up.";
+            harvestAlertText.text = message;
 
         alertTimer = alertDuration;
         alertActive = true;
 
-        Debug.Log("[HUD] Alert: " + cropName + " is ready to harvest!");
+        Debug.Log("[HUD] Alert: " + message);
     }
 
     // Called by FarmManager when all crops are harvested

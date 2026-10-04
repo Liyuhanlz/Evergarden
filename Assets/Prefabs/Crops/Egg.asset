@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e196547546c6f424c8348bd1f3945667, type: 3}
+  m_Name: Egg
+  m_EditorClassIdentifier: 
+  cropName: Egg
+  daysToMature: 0
+  growthStagePrefabs: []
+  harvestYield: 1
+  sellPrice: 4
+  isMultiHarvest: 0
+  regrowDays: 2
+  maxHarvests: 1
+  regrowthYieldMultiplier: 0.5
+  icon: {fileID: 21300000, guid: fa580d96e20c5eb478cc38cd5723dba1, type: 3}
+  summary: Fresh eggs from your hens. A healthy hen lays at most one egg a day, usually
+    in the morning.
+  facts:
+  - It takes a hen about 24 to 26 hours to make one egg, so she can never lay more
+    than one a day.
+  - Shell color depends on the breed -- Leghorns lay white eggs, Rhode Island Reds
+    lay brown ones.
+  - Hens lay best in their first two years, then a little less each year after that.

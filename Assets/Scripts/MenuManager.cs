@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class MenuManager : MonoBehaviour
@@ -32,7 +33,7 @@ public class MenuManager : MonoBehaviour
     [Tooltip("Canvas / panel shown when Inventory is open")]
     public GameObject inventoryPanel;
 
-    [Tooltip("Crops/Tool/Seeds tab buttons -- a sibling of InventoryPanel under MenuCanvas, not a " +
+    [Tooltip("Harvest/Tool/Seeds tab buttons -- a sibling of InventoryPanel under MenuCanvas, not a " +
              "child of it, so it needs its own explicit show/hide alongside InventoryPanel rather " +
              "than following it automatically")]
     public GameObject tabBar;
@@ -47,35 +48,37 @@ public class MenuManager : MonoBehaviour
              "the Y-button backpack")]
     public GameObject toolInventoryPanel;
 
-    public enum InventoryTab { Crops, Tool, Seeds }
+    public enum InventoryTab { Harvest, Tool, Seeds }
 
     [Header("Inventory Tabs (Y-button backpack)")]
-    [Tooltip("The existing harvested-crop grid -- shown only while the Crops tab is selected")]
-    public GameObject cropsTabContent;
+    [Tooltip("The harvest grid (crops, eggs, ...) -- shown only while the Harvest tab is selected")]
+    [FormerlySerializedAs("cropsTabContent")]
+    public GameObject harvestTabContent;
 
     [Tooltip("InventoryPanel's own solid background -- covers a large area (the whole backpack " +
-             "canvas), so it stays visible only on the Crops tab. Otherwise it sits between the " +
+             "canvas), so it stays visible only on the Harvest tab. Otherwise it sits between the " +
              "player and whatever's on the Tool/Seeds sub-panel below and visually blocks it, " +
              "even though that sub-panel isn't actually behind it.")]
     public Image inventoryBackgroundImage;
 
-    public Button cropsTabButton;
+    [FormerlySerializedAs("cropsTabButton")]
+    public Button harvestTabButton;
     public Button toolTabButton;
     public Button seedsTabButton;
 
     [Tooltip("Tint applied to whichever tab button is currently selected, so it's visually obvious " +
              "which one you're on -- the other two stay at their normal Image color")]
     public Color selectedTabColor = new Color(1f, 0.85f, 0.3f, 1f);
-    private Color cropsTabDefaultColor, toolTabDefaultColor, seedsTabDefaultColor;
+    private Color harvestTabDefaultColor, toolTabDefaultColor, seedsTabDefaultColor;
     private bool tabDefaultColorsCaptured;
 
     // Also doubles as "which tab to reopen to" -- OpenInventory() reuses
-    // whatever this already is instead of always resetting to Crops, so the
+    // whatever this already is instead of always resetting to Harvest, so the
     // backpack remembers the last tab you were on.
-    private InventoryTab currentTab = InventoryTab.Crops;
+    private InventoryTab currentTab = InventoryTab.Harvest;
 
     [Tooltip("Locomotion providers (ActionBasedContinuousMoveProvider, turn providers, etc.) " +
-             "disabled while the crop inventory or tool inventory is open -- same reasoning as " +
+             "disabled while the harvest inventory or tool inventory is open -- same reasoning as " +
              "ShopInteractionController: don't let the player wander (or, for the tool rack, " +
              "turn) while browsing a menu.")]
     public Behaviour[] menuLocomotionProvidersToDisable;
@@ -158,7 +161,7 @@ public class MenuManager : MonoBehaviour
     {
         HideAll();
 
-        if (cropsTabButton != null) cropsTabButton.onClick.AddListener(() => SetInventoryTab(InventoryTab.Crops));
+        if (harvestTabButton != null) harvestTabButton.onClick.AddListener(() => SetInventoryTab(InventoryTab.Harvest));
         if (toolTabButton != null) toolTabButton.onClick.AddListener(() => SetInventoryTab(InventoryTab.Tool));
         if (seedsTabButton != null) seedsTabButton.onClick.AddListener(() => SetInventoryTab(InventoryTab.Seeds));
     }
@@ -247,7 +250,7 @@ public class MenuManager : MonoBehaviour
         // Tab content that lives outside the InventoryPanel itself (the tool
         // rack's 3D sockets, the seed picker's own canvas) needs to be told
         // to hide separately -- SetActive(inventoryPanel, false) above only
-        // covers the Crops tab's own grid.
+        // covers the Harvest tab's own grid.
         if (toolInventoryPanel != null)
             toolInventoryPanel.transform.position = toolInventoryHiddenPosition;
         SeedPickerUI.Instance?.Close();
@@ -269,9 +272,9 @@ public class MenuManager : MonoBehaviour
         currentTab = tab;
         UpdateTabHighlight(tab);
 
-        SetActive(cropsTabContent, tab == InventoryTab.Crops);
+        SetActive(harvestTabContent, tab == InventoryTab.Harvest);
         if (inventoryBackgroundImage != null)
-            inventoryBackgroundImage.enabled = (tab == InventoryTab.Crops);
+            inventoryBackgroundImage.enabled = (tab == InventoryTab.Harvest);
 
         if (tab == InventoryTab.Tool)
         {
@@ -314,13 +317,13 @@ public class MenuManager : MonoBehaviour
     {
         if (!tabDefaultColorsCaptured)
         {
-            if (cropsTabButton != null) cropsTabDefaultColor = cropsTabButton.image.color;
+            if (harvestTabButton != null) harvestTabDefaultColor = harvestTabButton.image.color;
             if (toolTabButton != null) toolTabDefaultColor = toolTabButton.image.color;
             if (seedsTabButton != null) seedsTabDefaultColor = seedsTabButton.image.color;
             tabDefaultColorsCaptured = true;
         }
 
-        if (cropsTabButton != null) cropsTabButton.image.color = tab == InventoryTab.Crops ? selectedTabColor : cropsTabDefaultColor;
+        if (harvestTabButton != null) harvestTabButton.image.color = tab == InventoryTab.Harvest ? selectedTabColor : harvestTabDefaultColor;
         if (toolTabButton != null) toolTabButton.image.color = tab == InventoryTab.Tool ? selectedTabColor : toolTabDefaultColor;
         if (seedsTabButton != null) seedsTabButton.image.color = tab == InventoryTab.Seeds ? selectedTabColor : seedsTabDefaultColor;
     }

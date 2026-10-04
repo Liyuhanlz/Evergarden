@@ -12,6 +12,18 @@ public class InventoryManager : MonoBehaviour
     public GameObject slotPrefab;
     public int maxSlots = 16;
 
+    [Header("Grid Layout")]
+    [Tooltip("Boxes per row -- rows follow from Max Slots. Box size is worked out from the Slot " +
+             "Container's own size, so the grid always fills the panel exactly instead of " +
+             "spilling past its edges")]
+    public int columns = 4;
+
+    [Tooltip("Gap between boxes, in the canvas's UI units")]
+    public float boxSpacing = 3f;
+
+    [Tooltip("Margin between the outer boxes and the panel's edge, in the canvas's UI units")]
+    public float gridPadding = 4f;
+
     private Dictionary<string, int> inventory = new Dictionary<string, int>();
     private Dictionary<string, CropData> cropDataMap = new Dictionary<string, CropData>();
 
@@ -45,13 +57,40 @@ public class InventoryManager : MonoBehaviour
             return;
         }
 
+        FitGridToContainer();
+
         for (int i = 0; i < maxSlots; i++)
         {
             GameObject slot = Instantiate(slotPrefab, slotContainer);
+            slot.transform.localScale = Vector3.one;
             spawnedSlots.Add(slot);
         }
 
         RefreshUI();
+    }
+
+    // Square boxes as large as fit: columns x rows inside the container's
+    // rect, minus padding and gaps.
+    void FitGridToContainer()
+    {
+        GridLayoutGroup grid = slotContainer.GetComponent<GridLayoutGroup>();
+        RectTransform area = slotContainer as RectTransform;
+        if (grid == null || area == null) return;
+
+        int cols = Mathf.Max(1, columns);
+        int rows = Mathf.CeilToInt(maxSlots / (float)cols);
+
+        float usableW = area.rect.width - 2f * gridPadding - (cols - 1) * boxSpacing;
+        float usableH = area.rect.height - 2f * gridPadding - (rows - 1) * boxSpacing;
+        float box = Mathf.Max(1f, Mathf.Min(usableW / cols, usableH / rows));
+
+        grid.cellSize = new Vector2(box, box);
+        grid.spacing = new Vector2(boxSpacing, boxSpacing);
+        int pad = Mathf.RoundToInt(gridPadding);
+        grid.padding = new RectOffset(pad, pad, pad, pad);
+        grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        grid.constraintCount = cols;
+        grid.childAlignment = TextAnchor.MiddleCenter;
     }
 
     public void AddCrop(CropData data, int amount = 1)
@@ -125,7 +164,7 @@ public class InventoryManager : MonoBehaviour
                 }
 
                 if (countText != null)
-                    countText.text = qty > 1 ? "x" + qty : "";
+                    countText.text = "x" + qty;
             }
             else
             {
