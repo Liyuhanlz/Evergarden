@@ -76,9 +76,9 @@ public class GameClock : MonoBehaviour
         }
     }
 
-    // Sleeping: jump straight to the next morning (dayStartHour) and run the
-    // normal new-day events, exactly as if the day had played out -- crops
-    // grow, hens plan their day, etc.
+    // Ending the day early (see Barn): jump straight to the next morning
+    // (dayStartHour) and run the normal new-day events, exactly as if the day
+    // had played out -- crops grow, hens plan their day, etc.
     public void SkipToNextMorning()
     {
         timer = 0f;
@@ -88,7 +88,7 @@ public class GameClock : MonoBehaviour
         CurrentDay++;
         OnNewDay?.Invoke();
         OnNewDayUnityEvent?.Invoke();
-        Debug.Log("[GameClock] Slept through to Day " + CurrentDay + ".");
+        Debug.Log("[GameClock] Skipped ahead to Day " + CurrentDay + ".");
     }
 
     public string GetTimeString()
