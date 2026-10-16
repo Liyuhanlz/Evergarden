@@ -145,6 +145,9 @@ public class Chicken : MonoBehaviour
     private AnimatorControllerParameterType? stateParameterType;
 
     private bool isPaused;
+    private bool gamePaused;
+    private bool heldByPetting;
+    private bool headingIn;
     private float todaysWakeHour;
     private float todaysRoostHour;
     private float todaysLayHour;
@@ -255,10 +258,31 @@ public class Chicken : MonoBehaviour
 
     void HandlePauseChanged(bool paused)
     {
-        isPaused = paused;
+        gamePaused = paused;
+        ApplyPause();
+    }
+
+    // Frozen while either a menu pauses game time or the player is petting her.
+    void ApplyPause()
+    {
+        isPaused = gamePaused || heldByPetting;
 
         if (agent != null && agent.enabled && agent.isOnNavMesh)
-            agent.isStopped = paused;
+            agent.isStopped = isPaused;
+    }
+
+    // =============================================
+    //  PETTING
+    // =============================================
+
+    // Only while she's out foraging -- not on her way in or inside the coop.
+    public bool CanBePetted => !IsInsideCoop && !headingIn;
+
+    // PettableAnimal holds her still while she's being petted.
+    public void SetPetted(bool petted)
+    {
+        heldByPetting = petted;
+        ApplyPause();
     }
 
     void HandleNewDay()
@@ -340,6 +364,7 @@ public class Chicken : MonoBehaviour
 
     IEnumerator WalkIntoCoop(bool hurry)
     {
+        headingIn = true;
         agent.speed = hurry ? returnSpeed : moveSpeed;
         agent.SetDestination(coop.EntrancePosition);
 
@@ -359,6 +384,7 @@ public class Chicken : MonoBehaviour
 
         agent.speed = moveSpeed;
         GoInside();
+        headingIn = false;
     }
 
     IEnumerator SitInNest()

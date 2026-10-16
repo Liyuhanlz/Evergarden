@@ -2525,6 +2525,7 @@ GameObject:
   - component: {fileID: -5406308964544582628}
   - component: {fileID: -8216176293837144813}
   - component: {fileID: 1676480996663954348}
+  - component: {fileID: 1967614408308112296}
   m_Layer: 0
   m_Name: SK_Sheep_white
   m_TagString: Untagged
@@ -2706,6 +2707,10 @@ MonoBehaviour:
   idleDurationRange: {x: 2, y: 6}
   moveSpeed: 1.2
   angularSpeed: 120
+  herdSpeedRange: {x: 2.2, y: 3}
+  reactionDelayMax: 1.5
+  arriveRadius: 0.8
+  barnWalkTimeout: 25
   vertParameterName: Vert
   stateParameterName: State
   animationDampTime: 0.1
@@ -2714,6 +2719,40 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 3f6605b9d3d72864aa32359cb8806bd5, type: 3}
   soundIntervalRange: {x: 5, y: 15}
   soundVolume: 1
+--- !u!114 &1967614408308112296
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6517686061769116559}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1b3622e34605ed41aeeda105ea5417f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  touchPadding: 0.1
+  strokeSpeedRange: {x: 0.05, y: 1.5}
+  strokeToStart: 0.25
+  strokeDecay: 0.1
+  releaseDelay: 1.5
+  facePlayer: 1
+  turnSpeed: 120
+  sitState: stand_to_sit
+  standState: sit_to_stand
+  idleState: Blend Tree
+  standUpDuration: 2.2
+  bounceAmount: 0.06
+  bounceSpeed: 2.5
+  heartsPrefab: {fileID: 4248821911253070545, guid: bc7cf7e12fd78c24ba38ccbd5527ba5c,
+    type: 3}
+  strokePerHeart: 0.12
+  startBurst: 4
+  happySounds: []
+  happySoundInterval: {x: 2.5, y: 5}
+  happyVolume: 1
+  hapticAmplitude: 0.15
+  hapticDuration: 0.05
 --- !u!1 &6517686061794323453
 GameObject:
   m_ObjectHideFlags: 0

@@ -150,14 +150,38 @@ public class AnimalWander : MonoBehaviour
             GameClock.Instance.OnPauseChanged -= HandlePauseChanged;
     }
 
+    // Frozen while either a menu pauses game time or the player is petting
+    // this animal -- both just stop the routine where it is.
     private bool isPaused;
+    private bool gamePaused;
+    private bool heldByPetting;
 
     void HandlePauseChanged(bool paused)
     {
-        isPaused = paused;
+        gamePaused = paused;
+        ApplyPause();
+    }
+
+    void ApplyPause()
+    {
+        isPaused = gamePaused || heldByPetting;
 
         if (agent != null && agent.enabled && agent.isOnNavMesh)
-            agent.isStopped = paused;
+            agent.isStopped = isPaused;
+    }
+
+    // =============================================
+    //  PETTING
+    // =============================================
+
+    // Only out in the field -- not while running to, waiting at or inside the barn.
+    public bool CanBePetted => CurrentState == State.Wandering;
+
+    // PettableAnimal holds the animal still while it's being petted.
+    public void SetPetted(bool petted)
+    {
+        heldByPetting = petted;
+        ApplyPause();
     }
 
     void Update()
